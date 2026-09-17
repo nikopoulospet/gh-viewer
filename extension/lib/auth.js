@@ -32,6 +32,10 @@ GV.auth = {
 
   // Step 2: poll until the user approves in the other tab. `onWait` lets the
   // panel keep a countdown honest instead of looking frozen.
+  // Returns the whole grant, not just the token: an `expires_in` in the reply
+  // means the App has token expiration switched on, which this extension cannot
+  // recover from (refreshing needs a client secret). The panel warns about it
+  // at connect time rather than letting it fail silently hours later.
   async pollForToken(clientId, device, { signal, onWait } = {}) {
     let interval = (device.interval || 5) * 1000;
     const deadline = Date.now() + (device.expires_in || 900) * 1000;
@@ -48,7 +52,7 @@ GV.auth = {
         grant_type: "urn:ietf:params:oauth:grant-type:device_code",
       });
 
-      if (body.access_token) return body.access_token;
+      if (body.access_token) return body;
       if (body.error === "authorization_pending") continue;
       if (body.error === "slow_down") {
         interval = (body.interval || interval / 1000 + 5) * 1000;

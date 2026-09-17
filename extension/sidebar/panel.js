@@ -134,16 +134,28 @@ async function startDeviceFlow() {
   show(wrap);
 
   try {
-    const token = await GV.auth.pollForToken(clientId, device, {
+    const grant = await GV.auth.pollForToken(clientId, device, {
       signal: controller.signal,
       onWait: (secondsLeft) => {
         waiting.textContent = `Waiting for approval… (${secondsLeft}s left)`;
       },
     });
-    await GV.store.setToken(token);
-    const viewer = await GV.api.whoAmI(token);
+    await GV.store.setToken(grant.access_token);
+    const viewer = await GV.api.whoAmI(grant.access_token);
     if (viewer) await GV.store.setViewer(viewer);
-    setStatus(viewer ? `signed in as ${viewer.login}` : "signed in");
+
+    if (grant.expires_in) {
+      // Refreshing needs a client secret, which a browser extension cannot
+      // hold, so this token simply dies. Say so now, with the fix.
+      const hours = Math.round(grant.expires_in / 3600);
+      setStatus(
+        `signed in, but this token expires in ~${hours}h — turn off ` +
+        `"Expire user authorization tokens" in the App settings`,
+        "warn"
+      );
+    } else {
+      setStatus(viewer ? `signed in as ${viewer.login}` : "signed in");
+    }
     boot();
   } catch (e) {
     if (e.message !== "cancelled") showConnect(e.message);
