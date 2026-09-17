@@ -16,12 +16,12 @@ GV.DETAIL_DOC = `query($id: ID!) {
       assignees(first: 10) { nodes { login } }
       reviews(last: 20) { nodes { author { login } state submittedAt } }
       comments(last: 10) { nodes { author { login } createdAt bodyText url } }
-      commits(last: 1) { nodes { commit { statusCheckRollup { state
-        contexts(first: 30) { nodes {
+      statusCheckRollup { state
+        contexts(first: 100) { totalCount nodes {
           __typename
           ... on CheckRun { name conclusion detailsUrl }
           ... on StatusContext { context state targetUrl }
-        } } } } } }
+        } } }
     }
     ... on Issue {
       number title url bodyText state updatedAt createdAt
@@ -85,8 +85,33 @@ const CI_LABELS = {
 };
 
 function ciState(node) {
-  const commit = node?.commits?.nodes?.[0]?.commit;
-  return commit?.statusCheckRollup?.state || null;
+  return node?.statusCheckRollup?.state || null;
+}
+
+const CHECK_TONES = {
+  SUCCESS: "ok", NEUTRAL: "ok", SKIPPED: "ok",
+  FAILURE: "bad", ERROR: "bad", TIMED_OUT: "bad",
+  CANCELLED: "bad", ACTION_REQUIRED: "bad",
+};
+
+function checkState(check) {
+  return (check.conclusion || check.state || "").toUpperCase();
+}
+
+function checkTone(check) {
+  return CHECK_TONES[checkState(check)] || "wait";
+}
+
+// Re-running a check adds another run with the same name rather than replacing
+// it, and a busy PR carries 60+ contexts. Keep only the latest per name, and
+// put anything failing first: sixty green checks are not why you opened the PR.
+function summariseChecks(nodes) {
+  const latest = new Map();
+  for (const check of nodes) {
+    latest.set(check.name || check.context || "", check);
+  }
+  const rank = (check) => ({ bad: 0, wait: 1, ok: 2 }[checkTone(check)]);
+  return [...latest.values()].sort((a, b) => rank(a) - rank(b));
 }
 
 GV.render = {
@@ -169,16 +194,14 @@ GV.render = {
     }
     if (chips.childNodes.length) wrap.append(chips);
 
-    const checks = node.commits?.nodes?.[0]?.commit?.statusCheckRollup?.contexts?.nodes || [];
+    const checks = summariseChecks(node.statusCheckRollup?.contexts?.nodes || []);
     if (checks.length) {
-      wrap.append(el("h3", "section", "Checks"));
-      const list = el("ul", "checks");
+      wrap.append(el("h3", "section", `Checks (${checks.length})`));
+      const list = el("ul", "checks check-runs");
       for (const check of checks) {
         const item = el("li", "check");
-        const state = (check.conclusion || check.state || "").toUpperCase();
-        const tone = ["SUCCESS", "NEUTRAL", "SKIPPED"].includes(state) ? "ok"
-                   : ["FAILURE", "ERROR", "TIMED_OUT", "CANCELLED"].includes(state) ? "bad" : "wait";
-        item.append(el("span", `dot ${tone}`, "●"));
+        const state = checkState(check);
+        item.append(el("span", `dot ${checkTone(check)}`, "●"));
         const url = check.detailsUrl || check.targetUrl;
         if (url) {
           const anchor = el("a", null, check.name || check.context);
@@ -196,7 +219,7 @@ GV.render = {
     const reviews = node.reviews?.nodes?.filter((r) => r.state !== "COMMENTED") || [];
     if (reviews.length) {
       wrap.append(el("h3", "section", "Reviews"));
-      const list = el("ul", "checks");
+      const list = el("ul", "checks review-list");
       for (const review of reviews) {
         const item = el("li", "check");
         item.append(el("span", null, review.author?.login || "someone"));

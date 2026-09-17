@@ -26,7 +26,7 @@ const SEARCH_DOC = `query($q: String!, $first: Int = 30) {
         author { login } repository { nameWithOwner }
         labels(first: 8) { nodes { name color } }
         comments { totalCount }
-        commits(last: 1) { nodes { commit { statusCheckRollup { state } } } }
+        statusCheckRollup { state }
       }
       ... on Issue {
         id number title url state updatedAt

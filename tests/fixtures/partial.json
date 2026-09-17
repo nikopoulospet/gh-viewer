@@ -28,15 +28,7 @@
           "comments": {
             "totalCount": 0
           },
-          "commits": {
-            "nodes": [
-              {
-                "commit": {
-                  "statusCheckRollup": null
-                }
-              }
-            ]
-          }
+          "statusCheckRollup": null
         }
       ]
     }
@@ -48,7 +40,7 @@
         "search",
         "nodes",
         0,
-        "commits"
+        "statusCheckRollup"
       ],
       "message": "Resource not accessible by integration"
     }

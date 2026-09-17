@@ -1,6 +1,8 @@
 {
   "data": {
-    "rateLimit": { "remaining": 4987 },
+    "rateLimit": {
+      "remaining": 4987
+    },
     "search": {
       "issueCount": 3,
       "nodes": [
@@ -14,16 +16,30 @@
           "state": "OPEN",
           "updatedAt": "2026-09-16T10:04:00Z",
           "reviewDecision": "APPROVED",
-          "author": { "login": "octocat" },
-          "repository": { "nameWithOwner": "example-org/example-repo" },
-          "labels": { "nodes": [
-            { "name": "bug", "color": "d73a4a" },
-            { "name": "needs-backport", "color": "fef2c0" }
-          ] },
-          "comments": { "totalCount": 4 },
-          "commits": { "nodes": [
-            { "commit": { "statusCheckRollup": { "state": "SUCCESS" } } }
-          ] }
+          "author": {
+            "login": "octocat"
+          },
+          "repository": {
+            "nameWithOwner": "example-org/example-repo"
+          },
+          "labels": {
+            "nodes": [
+              {
+                "name": "bug",
+                "color": "d73a4a"
+              },
+              {
+                "name": "needs-backport",
+                "color": "fef2c0"
+              }
+            ]
+          },
+          "comments": {
+            "totalCount": 4
+          },
+          "statusCheckRollup": {
+            "state": "SUCCESS"
+          }
         },
         {
           "__typename": "PullRequest",
@@ -35,13 +51,21 @@
           "state": "OPEN",
           "updatedAt": "2026-09-14T08:00:00Z",
           "reviewDecision": "REVIEW_REQUIRED",
-          "author": { "login": "hubot" },
-          "repository": { "nameWithOwner": "example-org/example-repo" },
-          "labels": { "nodes": [] },
-          "comments": { "totalCount": 0 },
-          "commits": { "nodes": [
-            { "commit": { "statusCheckRollup": { "state": "FAILURE" } } }
-          ] }
+          "author": {
+            "login": "hubot"
+          },
+          "repository": {
+            "nameWithOwner": "example-org/example-repo"
+          },
+          "labels": {
+            "nodes": []
+          },
+          "comments": {
+            "totalCount": 0
+          },
+          "statusCheckRollup": {
+            "state": "FAILURE"
+          }
         },
         {
           "__typename": "Issue",
@@ -51,10 +75,23 @@
           "url": "https://github.com/example-org/example-repo/issues/39",
           "state": "OPEN",
           "updatedAt": "2026-09-10T17:30:00Z",
-          "author": { "login": "octocat" },
-          "repository": { "nameWithOwner": "example-org/example-repo" },
-          "labels": { "nodes": [{ "name": "bug", "color": "d73a4a" }] },
-          "comments": { "totalCount": 2 }
+          "author": {
+            "login": "octocat"
+          },
+          "repository": {
+            "nameWithOwner": "example-org/example-repo"
+          },
+          "labels": {
+            "nodes": [
+              {
+                "name": "bug",
+                "color": "d73a4a"
+              }
+            ]
+          },
+          "comments": {
+            "totalCount": 2
+          }
         }
       ]
     }
