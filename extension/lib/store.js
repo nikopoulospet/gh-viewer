@@ -5,6 +5,14 @@ const GV = globalThis.GV || (globalThis.GV = {});
 
 GV.AuthError = class AuthError extends Error {};
 
+// The App's public client id. Registering the App is a one-time developer step,
+// not something each user does, so this is a constant rather than a setup
+// prompt. It is public by design - there is no secret anywhere in gh-viewer.
+// A value saved in storage still overrides it, for testing against another App.
+GV.BUILT_IN_CLIENT_ID = "Iv23liTmvm9SYEMbzQl7";
+GV.APP_SLUG = "gh-viewer-sidebar";
+GV.INSTALL_URL = `https://github.com/apps/${GV.APP_SLUG}/installations/new`;
+
 // One document serves every issue/PR search: the fragments pick the fields
 // that exist on each type. `id` is what the detail view drills down with.
 const SEARCH_DOC = `query($q: String!, $first: Int = 30) {
@@ -90,7 +98,7 @@ GV.store = {
   },
 
   async getClientId() {
-    return (await browser.storage.local.get("clientId")).clientId || "";
+    return (await browser.storage.local.get("clientId")).clientId || GV.BUILT_IN_CLIENT_ID;
   },
 
   async setClientId(clientId) {

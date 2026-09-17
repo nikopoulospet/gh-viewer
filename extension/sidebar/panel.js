@@ -45,10 +45,11 @@ document.addEventListener("auxclick", (event) => {
 
 function showSetup(message) {
   const wrap = el("div", "pane");
-  wrap.append(el("h2", null, "Connect gh-viewer"));
+  wrap.append(el("h2", null, "Use a different App"));
   wrap.append(el("p", "muted",
-    "Register the GitHub App once, then paste its Client ID here. " +
-    "Run tools/register_app.py in the repo - it prints the ID and writes app.json."));
+    "gh-viewer already knows its own App. Paste another App's Client ID here " +
+    "only if you are testing against one you registered yourself. Leave it " +
+    "empty to go back to the built-in App."));
   if (message) wrap.append(el("p", "error", message));
 
   const input = el("input");
@@ -75,6 +76,13 @@ function showConnect(message) {
   wrap.append(el("p", "muted",
     "GitHub will show a one-time code to approve in a browser tab. " +
     "gh-viewer stores only the resulting read-only token."));
+
+  const install = el("p", "muted");
+  install.append(document.createTextNode("Seeing nothing after you connect? The App also has to be "));
+  const installLink = el("a", null, "installed on the account or org");
+  installLink.href = GV.INSTALL_URL;
+  install.append(installLink, document.createTextNode(" that owns the repos."));
+  wrap.append(install);
   if (message) wrap.append(el("p", "error", message));
 
   const connect = el("button", "primary", "Connect");

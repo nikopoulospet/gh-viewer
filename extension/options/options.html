@@ -12,11 +12,13 @@
     <section>
       <h2>GitHub App</h2>
       <p class="muted">
-        Register the App with <code>tools/register_app.py</code>, then paste its
-        Client ID. Only a public client ID is ever stored — there is no secret.
+        gh-viewer ships with its own App, so there is nothing to fill in here.
+        Override the Client ID only to point at an App you registered yourself;
+        clearing the field restores the built-in one. It is a public identifier
+        either way — gh-viewer holds no secret.
       </p>
       <label>Client ID
-        <input id="client-id" type="text" placeholder="Iv23li…" autocomplete="off" />
+        <input id="client-id" type="text" autocomplete="off" />
       </label>
       <p id="account" class="muted"></p>
       <button id="save-client">Save Client ID</button>

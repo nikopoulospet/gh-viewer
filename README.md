@@ -20,8 +20,9 @@ access to your code.
 Firefox removes temporary add-ons when it restarts; for a permanent install use
 a signed build (see [DEVELOPING.md](DEVELOPING.md)).
 
-**2. Give it access to your GitHub.** Open the gh-viewer App page, press
-*Install*, and choose which account or organisation it may read — and within
+**2. Give it access to your GitHub.** Open
+[the gh-viewer App page](https://github.com/apps/gh-viewer-sidebar/installations/new),
+press *Install*, and choose which account or organisation it may read — and within
 that, all repositories or a hand-picked few. You can change or revoke this at
 any time in GitHub's *Settings → Applications*.
 
