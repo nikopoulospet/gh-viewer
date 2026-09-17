@@ -318,3 +318,24 @@ test("the detail view renders the body as markdown, not flat text", async () => 
   // And the comment bodies go through the same path.
   assert.ok(dom.window.document.querySelectorAll(".comment .markdown em").length >= 1);
 });
+
+test("exactly one query ships by default, and it is the involves view", async () => {
+  const dom = await loadPage("sidebar/panel.html", { browser: mockBrowser() });
+  const defaults = dom.window.GV.DEFAULT_QUERIES;
+
+  assert.equal(defaults.length, 1, "one default, on purpose");
+  const [only] = defaults;
+  assert.equal(only.id, "my-open-prs");
+  assert.equal(only.name, "My PRs");
+  assert.equal(only.variables.q, "is:pr state:open involves:@me archived:false");
+  assert.equal(only.list, "search.nodes");
+  assert.equal(only.count, "search.issueCount");
+
+  // involves:@me is the whole point - GraphQL search has no OR, so the
+  // disjunction has to come from the qualifier itself.
+  assert.doesNotMatch(only.variables.q, /\bOR\b/);
+  assert.match(only.document, /statusCheckRollup \{ state \}/,
+    "the CI chip is why this stays on GraphQL rather than REST");
+  assert.doesNotMatch(only.document, /commits\(last/,
+    "must not reintroduce the Contents-permission traversal");
+});
