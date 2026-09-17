@@ -55,50 +55,27 @@ const DISCUSSION_DOC = `query($q: String!, $first: Int = 30) {
 }`;
 
 GV.SEARCH_DOC = SEARCH_DOC;
+GV.DISCUSSION_DOC = DISCUSSION_DOC;
 
 // Seeded on first run. Every one is editable and deletable in the options page.
+// One default, on purpose: a single view answering "what of mine is in flight".
+//
+// `involves:@me` means author OR assignee OR commenter OR mentioned. That is
+// the closest single-search expression of "mine", because GitHub's GraphQL
+// search has no OR operator - a literal `(assignee:@me OR author:@me)` is
+// matched as plain text and returns nothing. The cost is breadth: a PR you only
+// commented on also appears.
+//
+// Everything else is yours to add in the options page; README.md carries
+// copy-paste JSON for the views that used to ship here.
 GV.DEFAULT_QUERIES = [
   {
     id: "my-open-prs",
-    name: "My open PRs",
+    name: "My PRs",
     document: SEARCH_DOC,
-    variables: { q: "is:pr state:open assignee:@me archived:false", first: 30 },
+    variables: { q: "is:pr state:open involves:@me archived:false", first: 30 },
     list: "search.nodes",
     count: "search.issueCount",
-  },
-  {
-    // GitHub does not make a PR's author its assignee, so "assigned to me"
-    // legitimately excludes your own PRs. This is the view that shows them.
-    id: "prs-i-opened",
-    name: "PRs I opened",
-    document: SEARCH_DOC,
-    variables: { q: "is:pr state:open author:@me archived:false", first: 30 },
-    list: "search.nodes",
-    count: "search.issueCount",
-  },
-  {
-    id: "awaiting-my-review",
-    name: "Awaiting my review",
-    document: SEARCH_DOC,
-    variables: { q: "is:pr state:open review-requested:@me archived:false", first: 30 },
-    list: "search.nodes",
-    count: "search.issueCount",
-  },
-  {
-    id: "my-open-issues",
-    name: "My open issues",
-    document: SEARCH_DOC,
-    variables: { q: "is:issue state:open assignee:@me archived:false", first: 30 },
-    list: "search.nodes",
-    count: "search.issueCount",
-  },
-  {
-    id: "recent-discussions",
-    name: "Recent discussions",
-    document: DISCUSSION_DOC,
-    variables: { q: "org:oauth-app-tester sort:updated-desc", first: 30 },
-    list: "search.nodes",
-    count: "search.discussionCount",
   },
 ];
 

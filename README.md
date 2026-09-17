@@ -52,9 +52,29 @@ costs one, so it's not something you'll run into.
 
 ## Making your own views
 
-gh-viewer starts with four views — your open PRs, PRs awaiting your review,
-your open issues, and recent discussions. They're just starting points; edit or
-delete any of them in **⚙**.
+gh-viewer ships with **one** view — *My PRs* — which uses `involves:@me`,
+meaning anything you authored, were assigned, commented on, or were mentioned in.
+That single qualifier is doing real work: GitHub's GraphQL search has no `OR`
+operator, so `(assignee:@me OR author:@me)` matches nothing at all. `involves:@me`
+is the closest single-search expression of "mine", at the cost of also showing
+PRs you merely commented on.
+
+Everything else is yours to build in **⚙**. Some ready-made views to copy — use
+*Add query*, then paste the `q` value and adjust:
+
+| View | `q` |
+| --- | --- |
+| Awaiting my review | `is:pr state:open review-requested:@me archived:false` |
+| My open issues | `is:issue state:open assignee:@me archived:false` |
+| Assigned to me only | `is:pr state:open assignee:@me archived:false` |
+| Opened by me only | `is:pr state:open author:@me archived:false` |
+| My failing PRs | `is:pr state:open involves:@me status:failure` |
+| Needs my attention | `is:pr state:open involves:@me review:none` |
+
+A discussions view needs a different document, since discussions are a separate
+search type; `GV.DISCUSSION_DOC` in `lib/store.js` is a ready-made one to paste
+into the document field, with `search.nodes` / `search.discussionCount` as the
+paths.
 
 The part you'll change most is the **search string**, which is exactly what you
 would type into GitHub's own search box:
