@@ -38,6 +38,19 @@ run_browser() {
   fi
 }
 
+run_lint() {
+  if command -v web-ext >/dev/null 2>&1; then
+    web-ext lint --source-dir=extension --output=text
+  else
+    $NIX shell nixpkgs#web-ext -c web-ext lint --source-dir=extension --output=text
+  fi
+}
+
+# Mozilla's own validator. Kept in the fast path because a packaging blocker
+# should surface on every run, not the day you try to publish.
+step "lint: AMO validation (web-ext)"
+run_lint | grep -E "^(errors|warnings|notices)" ; track ${PIPESTATUS[0]}
+
 step "static: script collisions"
 python3 tools/check_scripts.py; track $?
 

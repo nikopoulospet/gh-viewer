@@ -3,34 +3,40 @@
   "name": "gh-viewer",
   "version": "0.1.0",
   "description": "Saved GraphQL views of your GitHub issues, PRs and discussions, in the Firefox sidebar. Read-only.",
-
   "browser_specific_settings": {
     "gecko": {
       "id": "gh-viewer@nikopoulospet.github.io",
-      "strict_min_version": "115.0"
+      "strict_min_version": "140.0",
+      "data_collection_permissions": {
+        "required": [
+          "none"
+        ]
+      }
+    },
+    "gecko_android": {
+      "strict_min_version": "142.0"
     }
   },
-
   "permissions": [
     "storage",
     "tabs",
     "https://github.com/login/*"
   ],
-
-  "background": { "scripts": ["background.js"] },
-
+  "background": {
+    "scripts": [
+      "background.js"
+    ]
+  },
   "sidebar_action": {
     "default_title": "gh-viewer",
     "default_panel": "sidebar/panel.html",
     "default_icon": "icons/icon.svg",
     "open_at_install": true
   },
-
   "browser_action": {
     "default_title": "Toggle the gh-viewer sidebar",
     "default_icon": "icons/icon.svg"
   },
-
   "options_ui": {
     "page": "options/options.html",
     "open_in_tab": true

@@ -128,15 +128,55 @@ pages have a stable address, and geckodriver must be started with
 `--allow-system-access`, because opening a privileged `moz-extension://` page
 requires switching to the chrome context.
 
-## Packaging
+## Packaging and distribution
+
+Firefox will not permanently install an unsigned extension, so distribution
+means getting it signed by Mozilla. There are two channels, and they are very
+different propositions.
+
+**Unlisted** — signed but not published. Automated, usually under a minute, no
+human review. You get an `.xpi` to host or send to people; they install it via
+*about:addons → gear → Install Add-on From File*. Best for personal machines and
+handing to a few friends.
 
 ```bash
-web-ext sign --source-dir=extension --channel=unlisted
+web-ext sign --source-dir=extension --channel=unlisted \
+  --api-key=$AMO_JWT_ISSUER --api-secret=$AMO_JWT_SECRET
 ```
 
-Unlisted signing needs AMO API credentials and gets you an installable `.xpi`
-without review. Alternatively run Developer Edition / Nightly / ESR with
-`xpinstall.signatures.required = false`.
+Credentials come from <https://addons.mozilla.org/developers/addon/api/key/>.
+
+**Listed** — published on addons.mozilla.org, searchable and installable by
+anyone, with automatic updates. Goes through review; extensions without a build
+step and without remote code are the easy case, which this one is. Slower to
+land, far easier for other people to install and keep updated.
+
+Either way the version in `manifest.json` must be unique per upload — AMO
+rejects a version it has already seen.
+
+```bash
+web-ext build --source-dir=extension   # produce an unsigned zip to inspect
+```
+
+### Self-hosted updates
+
+An unlisted add-on does not update itself unless you tell it where to look. Add
+`browser_specific_settings.gecko.update_url` pointing at a JSON manifest you
+host, listing each version and its `.xpi` URL. Without it, every update means
+manually sending a new file.
+
+### Compatibility floor
+
+`strict_min_version` is 140 because `data_collection_permissions` — which AMO
+now requires — was introduced there. `gecko_android` is declared separately at
+142 for the same reason; Firefox for Android has no sidebar, so this is desktop
+software regardless.
+
+### Linting
+
+`web-ext lint` runs as part of `./run-tests.sh`, so a packaging blocker shows up
+on an ordinary test run rather than on the day you try to publish. It must stay
+at zero errors *and* zero warnings.
 
 ## Layout
 
