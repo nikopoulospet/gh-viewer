@@ -393,3 +393,35 @@ test("the default set includes the merged mine view", async () => {
   assert.match(mine.variables.authored, /author:@me/);
   assert.match(mine.variables.assigned, /is:open/, "is:open already includes drafts");
 });
+
+test("a search using OR explains itself instead of reading as 'no results'", async () => {
+  // GitHub's search API matches OR and parentheses as literal text, so such a
+  // query silently returns zero. That is indistinguishable from "you have no
+  // open PRs" unless the panel says otherwise.
+  const empty = { data: { rateLimit: { remaining: 10 }, search: { issueCount: 0, nodes: [] } } };
+  const queries = [{
+    id: "boolean", name: "Boolean attempt", document: "query { x }",
+    variables: { q: "is:pr state:open (assignee:@me OR author:@me) archived:false" },
+    list: "search.nodes", count: "search.issueCount",
+  }];
+  const dom = await loadPage("sidebar/panel.html", {
+    browser: mockBrowser({ ...SIGNED_IN, queries }),
+    fetch: mockFetch([empty]),
+  });
+  await settle();
+
+  const body = dom.window.document.body.textContent;
+  assert.match(body, /does not support/);
+  assert.match(body, /Split it into two searches/);
+  assert.doesNotMatch(body, /^Nothing matched this query\.$/);
+});
+
+test("an ordinary empty result still reads as empty", async () => {
+  const empty = { data: { rateLimit: { remaining: 10 }, search: { issueCount: 0, nodes: [] } } };
+  const dom = await loadPage("sidebar/panel.html", {
+    browser: mockBrowser(SIGNED_IN_SIMPLE),
+    fetch: mockFetch([empty]),
+  });
+  await settle();
+  assert.match(dom.window.document.body.textContent, /Nothing matched this query/);
+});

@@ -29,6 +29,21 @@ function describeErrors(errors) {
   return `partial${path ? ` at ${path}` : ""}: ${first.message}${more}`;
 }
 
+// GitHub's search API has no boolean operators: `a OR b` and parentheses are
+// treated as literal search terms, so a query using them matches nothing and
+// returns a silent zero rather than an error. Recognise that specific shape and
+// say so, instead of letting it read as "you have no open PRs".
+function unsupportedBooleanHint(query) {
+  const values = Object.values(query?.variables || {}).filter((v) => typeof v === "string");
+  const offender = values.find((v) => /\bOR\b|\bAND\b|\bNOT\b|[()]/.test(v));
+  if (!offender) return null;
+  return (
+    "This search uses OR/AND or parentheses, which GitHub's search API does " +
+    "not support — it matches them as literal text, so nothing is found. " +
+    "Split it into two searches and list both paths instead."
+  );
+}
+
 function setStatus(text, tone) {
   statusBar.textContent = text || "";
   statusBar.className = tone || "";
@@ -240,7 +255,7 @@ async function runSelected() {
   const remaining = response.data?.rateLimit?.remaining;
 
   if (!nodes.length) {
-    show(el("div", "pane muted", "Nothing matched this query."));
+    show(el("div", "pane muted", unsupportedBooleanHint(query) || "Nothing matched this query."));
   } else {
     show(GV.render.list(nodes));
   }
