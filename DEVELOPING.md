@@ -32,7 +32,15 @@ read-only with no `contents` permission rather than depending on getting ~40
 dropdowns right by hand. You press *Create GitHub App*; it writes `client_id`
 to `app.json` (gitignored) and prints the install URL.
 
-Two switches the manifest API cannot set, both on the App's settings page:
+Two switches the manifest API cannot set, both on the App's settings page —
+which is **not** the public `github.com/apps/<slug>` page, and lives under the
+owning organisation when you registered with `--org`:
+
+```
+https://github.com/settings/apps/<slug>                        # user-owned
+https://github.com/organizations/<org>/settings/apps/<slug>    # org-owned
+```
+
 
 - **Enable Device Flow** — on. Without it the extension cannot authenticate.
 - **Expire user authorization tokens** — **off**. Refreshing an expiring token
