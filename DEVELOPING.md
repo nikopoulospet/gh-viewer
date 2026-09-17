@@ -12,6 +12,19 @@ signs in to it. Registration is not a per-user step.
 ```bash
 python3 tools/register_app.py            # owned by your user account
 python3 tools/register_app.py --org some-test-org
+python3 tools/register_app.py --name some-other-name
+```
+
+App names are unique across the whole of GitHub, and they collide with account
+names as well as other Apps — `gh-viewer` itself is taken by the user account
+`@gh-viewer`, which is why the default is `gh-viewer-sidebar`. The name only
+identifies the App and its `github.com/apps/<slug>` page; the repo and the
+extension are unaffected. To check a candidate before you try it, both of these
+should 404:
+
+```bash
+curl -o /dev/null -w "%{http_code}\n" https://github.com/SOME-NAME
+curl -o /dev/null -w "%{http_code}\n" https://github.com/apps/SOME-NAME
 ```
 
 The script posts an exact permission manifest to GitHub, so the App comes out

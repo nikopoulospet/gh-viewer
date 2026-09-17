@@ -41,9 +41,12 @@ result = {}
 done = threading.Event()
 
 
-def manifest(port, repo_url):
+def manifest(port, repo_url, name):
     return {
-        "name": "gh-viewer",
+        # App names are unique across all of GitHub and collide with account
+        # names too, so "gh-viewer" is unavailable: @gh-viewer is a real user.
+        # This only names the App; the repo and extension are unaffected.
+        "name": name,
         "url": repo_url,
         "description": "Saved GraphQL views of your GitHub issues, PRs and "
                        "discussions, rendered in the Firefox sidebar. Read-only.",
@@ -151,6 +154,9 @@ def free_port():
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--org", help="register the App under this org instead of your user")
+    ap.add_argument("--name", default="gh-viewer-sidebar",
+                    help="App name; must be unused across all of GitHub "
+                         "(default: %(default)s)")
     ap.add_argument("--repo-url", default="https://github.com/nikopoulospet/gh-viewer")
     ap.add_argument("--no-browser", action="store_true",
                     help="print the URL instead of opening a browser")
@@ -162,10 +168,11 @@ def main():
               if args.org else f"https://github.com/settings/apps/new?state={state}")
 
     server = http.server.HTTPServer(("127.0.0.1", port), Handler)
-    server.manifest = manifest(port, args.repo_url)
+    server.manifest = manifest(port, args.repo_url, args.name)
     server.action = action
     server.state = state
 
+    print(f"Registering App: {args.name}", flush=True)
     print("Requesting these permissions (all read-only):", flush=True)
     for k, v in PERMISSIONS.items():
         print(f"    {k:<24} {v}", flush=True)
