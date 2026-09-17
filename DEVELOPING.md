@@ -87,6 +87,39 @@ With `gh` this proves the documents are **valid**. Run it with an App token to
 also prove the App's permissions are **sufficient** — `gh`'s broader token can't
 tell you that, since it can see things the App deliberately cannot.
 
+## Testing
+
+```bash
+./run-tests.sh          # static + unit + headless Firefox
+./run-tests.sh fast     # skips the browser layer (~1s)
+```
+
+Everything is hermetic — no test touches the GitHub API, and all responses come
+from `tests/fixtures/`, which are **synthetic on purpose**: this repo is public,
+so fixtures built from real private-repo data would publish it. Node, Firefox
+and geckodriver are fetched by nix at user level; nothing is installed globally.
+
+Three layers, each catching what the one below cannot:
+
+- **`tools/check_scripts.py`** — the extension's pages load classic scripts that
+  share one global scope, so a top-level `const` of the same name in two files
+  is a SyntaxError that silently kills the second file. This shipped once. The
+  checker tracks real brace depth, so IIFE-wrapped code is correctly ignored.
+- **`tests/unit/`** — jsdom, with `browser.*` mocked and fixtures fed through a
+  stubbed `fetch`. Evaluates the real page scripts in one shared window, in
+  order, exactly as the browser does. Covers the boot states, rendering,
+  drill-down, link interception, partial errors, and token rejection.
+- **`tests/smoke.py`** — installs the extension into headless Firefox and drives
+  it through geckodriver's HTTP API (no selenium dependency). Proves what jsdom
+  cannot: the manifest is accepted, CSP allows the scripts, `browser.*` behaves,
+  and the CSS actually paints.
+
+Two things the browser layer needs that are easy to trip over: the extension's
+internal UUID is pinned via the `extensions.webextensions.uuids` pref so its
+pages have a stable address, and geckodriver must be started with
+`--allow-system-access`, because opening a privileged `moz-extension://` page
+requires switching to the chrome context.
+
 ## Packaging
 
 ```bash
