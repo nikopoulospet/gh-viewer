@@ -1,0 +1,109 @@
+# Releases are driven by the version in extension/manifest.json, not by tags.
+# Merge a PR that bumps the version and this publishes it; merge anything else
+# and this does nothing. The tag is derived from the manifest, so a tag and a
+# build cannot disagree about what version they are.
+name: Release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write # create tags and releases
+
+jobs:
+  check:
+    name: Is this a new version?
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.check.outputs.version }}
+      needed: ${{ steps.check.outputs.needed }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # tags are how we know what has already shipped
+
+      - id: check
+        run: |
+          VERSION="$(python3 tools/version.py)"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          if git rev-parse -q --verify "refs/tags/v$VERSION" >/dev/null; then
+            echo "needed=false" >> "$GITHUB_OUTPUT"
+            echo "v$VERSION is already released - nothing to do." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "needed=true" >> "$GITHUB_OUTPUT"
+            echo "Releasing **v$VERSION**" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+  release:
+    name: Sign and publish
+    needs: check
+    if: needs.check.outputs.needed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Fail before spending minutes on tests if the credentials are absent.
+      - name: Check AMO credentials are configured
+        env:
+          AMO_JWT_ISSUER: ${{ secrets.AMO_JWT_ISSUER }}
+          AMO_JWT_SECRET: ${{ secrets.AMO_JWT_SECRET }}
+        run: |
+          if [ -z "$AMO_JWT_ISSUER" ] || [ -z "$AMO_JWT_SECRET" ]; then
+            echo "::error::AMO_JWT_ISSUER and AMO_JWT_SECRET must be set as repository secrets."
+            echo "::error::Create them at https://addons.mozilla.org/developers/addon/api/key/"
+            exit 1
+          fi
+
+      - uses: DeterminateSystems/nix-installer-action@main
+      - uses: DeterminateSystems/magic-nix-cache-action@main
+
+      - name: Install test dependencies
+        run: nix develop -c bash -c 'cd tests && npm ci'
+
+      # The full suite, smoke test included. A release is precisely when the
+      # slow layer earns its keep.
+      - name: Run the full test suite
+        run: nix develop -c ./run-tests.sh
+
+      - name: Sign with AMO
+        env:
+          AMO_JWT_ISSUER: ${{ secrets.AMO_JWT_ISSUER }}
+          AMO_JWT_SECRET: ${{ secrets.AMO_JWT_SECRET }}
+        run: |
+          nix develop -c web-ext sign \
+            --source-dir=extension \
+            --channel=unlisted \
+            --api-key="$AMO_JWT_ISSUER" \
+            --api-secret="$AMO_JWT_SECRET" \
+            --artifacts-dir=dist \
+            --timeout=900000
+
+      # Uploaded BEFORE the release is created. Signing burns the version at AMO
+      # permanently, so a signed file must never be lost to a later failure -
+      # recovering from that costs a version bump.
+      - name: Keep the signed artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: gh-viewer-${{ needs.check.outputs.version }}-xpi
+          path: dist/*.xpi
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Verify the signed artifact
+        run: |
+          python3 tools/verify_xpi.py dist/*.xpi \
+            --expect-version "${{ needs.check.outputs.version }}"
+
+      # gh release create makes the tag at this commit, so no separate tag push.
+      - name: Tag and publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.check.outputs.version }}
+        run: |
+          gh release create "v$VERSION" dist/*.xpi \
+            --title "v$VERSION" \
+            --generate-notes
+          echo "Published [v$VERSION](https://github.com/${{ github.repository }}/releases/tag/v$VERSION)" \
+            >> "$GITHUB_STEP_SUMMARY"
