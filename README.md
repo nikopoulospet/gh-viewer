@@ -16,10 +16,20 @@ access to your code.
 
 ## Install
 
-**1. Add it to Firefox.** Open `about:debugging#/runtime/this-firefox`, choose
-*Load Temporary Add-on*, and pick `extension/manifest.json` from this repo.
-Firefox removes temporary add-ons when it restarts; for a permanent install use
-a signed build (see [DEVELOPING.md](DEVELOPING.md)).
+**1. Add it to Firefox.** Download the latest `.xpi` from the
+[releases page](https://github.com/nikopoulospet/gh-viewer/releases/latest),
+then in Firefox open `about:addons`, click the gear icon, and choose
+**Install Add-on From File…** — or simply drag the downloaded file onto a
+Firefox window.
+
+The build is signed by Mozilla, so it installs permanently and survives
+restarts. It needs **Firefox 140 or newer**; it is desktop-only, since Firefox
+for Android has no sidebar.
+
+> Updates are manual: this is distributed as a signed file rather than through
+> addons.mozilla.org, so Firefox will not upgrade it for you. To update, grab
+> the newer `.xpi` and install it the same way — your saved queries and sign-in
+> are kept.
 
 **2. Give it access to your GitHub.** Open
 [the gh-viewer App page](https://github.com/apps/gh-viewer-sidebar/installations/new),
@@ -130,6 +140,14 @@ and why — usually the fastest way to identify a missing permission.
 **Your access token is never included**, only whether one exists and what kind
 it is. Do read the report before sharing it, though: your saved queries can name
 private repositories and organisations, and those do travel with it.
+
+## Running it from source
+
+If you would rather build it yourself than install the signed file, open
+`about:debugging#/runtime/this-firefox`, choose *Load Temporary Add-on*, and
+pick `extension/manifest.json` from a clone of this repo. Firefox discards
+temporary add-ons on restart, so this is for development rather than daily use —
+see [DEVELOPING.md](DEVELOPING.md).
 
 ## If something looks off
 
