@@ -48,7 +48,7 @@ test("the report captures configuration worth debugging", async () => {
   assert.ok(report.app.clientId, "which App is in use");
   assert.equal(report.app.usingBuiltInClientId, true);
   assert.equal(report.storage.usingDefaultQueries, true);
-  assert.ok(report.queries.length >= 4, "saved queries travel with the report");
+  assert.ok(report.queries.length >= 1, "saved queries travel with the report");
   assert.ok(report.queries[0].document, "including the document that may be broken");
   assert.ok(report.generatedAt);
 });

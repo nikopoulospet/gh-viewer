@@ -199,11 +199,11 @@ def _(d):
     assert colour == "rgb(215, 58, 74)", f"label colour not applied: {colour!r}"
 
 
-@check("the options page loads and lists the default queries")
+@check("the options page loads and lists the default query")
 def _(d):
     open_extension_page(d, f"{BASE}/options/options.html")
     count = wait_for(d, "document.querySelectorAll('.card').length", "query cards")
-    assert count >= 5, f"expected the default queries, got {count}"
+    assert count == 1, f"expected the single default query, got {count}"
 
 
 def main():
