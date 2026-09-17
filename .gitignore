@@ -1,0 +1,6 @@
+# Local, never committed: identifies your App install, not the code.
+app.json
+.probe-token
+attic/
+__pycache__/
+*.xpi

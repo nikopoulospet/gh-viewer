@@ -1,0 +1,144 @@
+"use strict";
+// Settings and saved queries. Everything lives in browser.storage.local -
+// nothing is ever sent anywhere except to api.github.com.
+const GV = globalThis.GV || (globalThis.GV = {});
+
+GV.AuthError = class AuthError extends Error {};
+
+// One document serves every issue/PR search: the fragments pick the fields
+// that exist on each type. `id` is what the detail view drills down with.
+const SEARCH_DOC = `query($q: String!, $first: Int = 30) {
+  rateLimit { remaining }
+  search(query: $q, type: ISSUE, first: $first) {
+    issueCount
+    nodes {
+      __typename
+      ... on PullRequest {
+        id number title url isDraft state updatedAt reviewDecision
+        author { login } repository { nameWithOwner }
+        labels(first: 8) { nodes { name color } }
+        comments { totalCount }
+        commits(last: 1) { nodes { commit { statusCheckRollup { state } } } }
+      }
+      ... on Issue {
+        id number title url state updatedAt
+        author { login } repository { nameWithOwner }
+        labels(first: 8) { nodes { name color } }
+        comments { totalCount }
+      }
+    }
+  }
+}`;
+
+const DISCUSSION_DOC = `query($q: String!, $first: Int = 30) {
+  rateLimit { remaining }
+  search(query: $q, type: DISCUSSION, first: $first) {
+    discussionCount
+    nodes {
+      __typename
+      ... on Discussion {
+        id number title url updatedAt
+        author { login } repository { nameWithOwner }
+        category { name emoji }
+        comments { totalCount }
+      }
+    }
+  }
+}`;
+
+GV.SEARCH_DOC = SEARCH_DOC;
+
+// Seeded on first run. Every one is editable and deletable in the options page.
+GV.DEFAULT_QUERIES = [
+  {
+    id: "my-open-prs",
+    name: "My open PRs",
+    document: SEARCH_DOC,
+    variables: { q: "is:pr state:open assignee:@me archived:false", first: 30 },
+    list: "search.nodes",
+    count: "search.issueCount",
+  },
+  {
+    id: "awaiting-my-review",
+    name: "Awaiting my review",
+    document: SEARCH_DOC,
+    variables: { q: "is:pr state:open review-requested:@me archived:false", first: 30 },
+    list: "search.nodes",
+    count: "search.issueCount",
+  },
+  {
+    id: "my-open-issues",
+    name: "My open issues",
+    document: SEARCH_DOC,
+    variables: { q: "is:issue state:open assignee:@me archived:false", first: 30 },
+    list: "search.nodes",
+    count: "search.issueCount",
+  },
+  {
+    id: "recent-discussions",
+    name: "Recent discussions",
+    document: DISCUSSION_DOC,
+    variables: { q: "org:oauth-app-tester sort:updated-desc", first: 30 },
+    list: "search.nodes",
+    count: "search.discussionCount",
+  },
+];
+
+GV.store = {
+  async get(keys) {
+    return browser.storage.local.get(keys);
+  },
+
+  async getClientId() {
+    return (await browser.storage.local.get("clientId")).clientId || "";
+  },
+
+  async setClientId(clientId) {
+    return browser.storage.local.set({ clientId: clientId.trim() });
+  },
+
+  async getToken() {
+    return (await browser.storage.local.get("token")).token || "";
+  },
+
+  async setToken(token) {
+    return browser.storage.local.set({ token });
+  },
+
+  async clearToken() {
+    return browser.storage.local.remove(["token", "viewer"]);
+  },
+
+  async getViewer() {
+    return (await browser.storage.local.get("viewer")).viewer || null;
+  },
+
+  async setViewer(viewer) {
+    return browser.storage.local.set({ viewer });
+  },
+
+  async getQueries() {
+    const { queries } = await browser.storage.local.get("queries");
+    if (Array.isArray(queries) && queries.length) return queries;
+    await browser.storage.local.set({ queries: GV.DEFAULT_QUERIES });
+    return GV.DEFAULT_QUERIES;
+  },
+
+  async saveQueries(queries) {
+    return browser.storage.local.set({ queries });
+  },
+
+  async getSelectedQueryId() {
+    return (await browser.storage.local.get("selected")).selected || "";
+  },
+
+  async setSelectedQueryId(selected) {
+    return browser.storage.local.set({ selected });
+  },
+};
+
+// "search.nodes" -> data.search.nodes, tolerating nulls along the way.
+GV.pluck = function pluck(object, path) {
+  return String(path || "").split(".").filter(Boolean)
+    .reduce((acc, key) => (acc == null ? acc : acc[key]), object);
+};
