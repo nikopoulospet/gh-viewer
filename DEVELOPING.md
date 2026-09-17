@@ -158,6 +158,51 @@ rejects a version it has already seen.
 web-ext build --source-dir=extension   # produce an unsigned zip to inspect
 ```
 
+### Cutting a release
+
+Releases are driven by the version in `extension/manifest.json`, never by a tag
+typed by hand. To release:
+
+1. Open a PR bumping `"version"` in `extension/manifest.json`.
+2. Merge it.
+
+That is the whole ritual. `.github/workflows/release.yml` runs on every push to
+`main`; it compares the manifest version against existing tags and does nothing
+unless the version is new. When it is new, it runs the full suite (smoke test
+included), signs with AMO on the unlisted channel, tags `v<version>`, and
+publishes a GitHub Release with the signed `.xpi` attached.
+
+Two secrets are required: `AMO_JWT_ISSUER` and `AMO_JWT_SECRET`, from
+<https://addons.mozilla.org/developers/addon/api/key/>. The workflow checks they
+exist before running anything expensive.
+
+Deriving the tag from the manifest means the two can never disagree. The trade
+is that merging a version bump publishes immediately — there is no "bumped but
+not yet released" state. To add a pause, give the `release` job an
+`environment:` with a required reviewer; the run then waits for approval before
+the secrets are exposed.
+
+**A version number is spent the moment AMO sees it** and can never be reused. So
+the workflow uploads the signed `.xpi` as a workflow artifact *before* creating
+the release — if publishing fails afterwards, the signed file is still
+recoverable rather than lost to a version that can no longer be rebuilt.
+
+`tools/verify_xpi.py` checks a built archive before it is published: that it is
+genuinely signed (Mozilla's signature lands in `META-INF/`), that its version is
+the expected one, and that nothing is missing from it.
+
+```bash
+python3 tools/verify_xpi.py dist/*.xpi --expect-version 0.2.0
+python3 tools/verify_xpi.py /tmp/build.zip --allow-unsigned   # inspect a local build
+```
+
+### Who can trigger a release
+
+Anyone with write access, by merging a version bump. Note that **tag protection
+is separate from branch protection** — the rules on `main` do not cover
+`refs/tags/*`. This matters if collaborators are ever added: guard releases with
+a tag ruleset on `refs/tags/v*`, or with the environment approval above.
+
 ### Self-hosted updates
 
 An unlisted add-on does not update itself unless you tell it where to look. Add
