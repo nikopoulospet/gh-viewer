@@ -125,10 +125,13 @@ GV.store = {
     return browser.storage.local.set({ viewer });
   },
 
+  // Deliberately does not persist the defaults. Writing them on first read
+  // fired storage.onChanged, which re-booted the panel and ran the opening
+  // query twice. Defaults stay in code until the user saves their own, which
+  // also means improvements to them reach existing installs.
   async getQueries() {
     const { queries } = await browser.storage.local.get("queries");
     if (Array.isArray(queries) && queries.length) return queries;
-    await browser.storage.local.set({ queries: GV.DEFAULT_QUERIES });
     return GV.DEFAULT_QUERIES;
   },
 

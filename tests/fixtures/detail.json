@@ -1,0 +1,38 @@
+{
+  "data": {
+    "node": {
+      "__typename": "PullRequest",
+      "number": 41,
+      "title": "Retry flaky uploads instead of failing the batch",
+      "url": "https://github.com/example-org/example-repo/pull/41",
+      "bodyText": "Uploads that time out now retry twice before the batch is failed.",
+      "state": "OPEN",
+      "isDraft": false,
+      "merged": false,
+      "updatedAt": "2026-09-16T10:04:00Z",
+      "createdAt": "2026-09-12T09:00:00Z",
+      "reviewDecision": "APPROVED",
+      "author": { "login": "octocat" },
+      "repository": { "nameWithOwner": "example-org/example-repo" },
+      "labels": { "nodes": [{ "name": "bug", "color": "d73a4a" }] },
+      "assignees": { "nodes": [{ "login": "octocat" }] },
+      "reviews": { "nodes": [
+        { "author": { "login": "hubot" }, "state": "APPROVED", "submittedAt": "2026-09-15T12:00:00Z" },
+        { "author": { "login": "monalisa" }, "state": "COMMENTED", "submittedAt": "2026-09-15T13:00:00Z" }
+      ] },
+      "comments": { "nodes": [
+        { "author": { "login": "monalisa" }, "createdAt": "2026-09-15T13:01:00Z",
+          "bodyText": "Does this cover the multipart path too?",
+          "url": "https://github.com/example-org/example-repo/pull/41#issuecomment-1" }
+      ] },
+      "commits": { "nodes": [
+        { "commit": { "statusCheckRollup": { "state": "SUCCESS", "contexts": { "nodes": [
+          { "__typename": "CheckRun", "name": "unit", "conclusion": "SUCCESS",
+            "detailsUrl": "https://github.com/example-org/example-repo/runs/1" },
+          { "__typename": "CheckRun", "name": "lint", "conclusion": "FAILURE",
+            "detailsUrl": "https://github.com/example-org/example-repo/runs/2" }
+        ] } } } }
+      ] }
+    }
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "data": {
+    "rateLimit": { "remaining": 4980 },
+    "search": {
+      "issueCount": 1,
+      "nodes": [
+        {
+          "__typename": "PullRequest",
+          "id": "PR_kwSYNTHETIC9",
+          "number": 7,
+          "title": "A PR whose checks the App may not read",
+          "url": "https://github.com/example-org/example-repo/pull/7",
+          "isDraft": false,
+          "state": "OPEN",
+          "updatedAt": "2026-09-17T07:00:00Z",
+          "reviewDecision": null,
+          "author": { "login": "octocat" },
+          "repository": { "nameWithOwner": "example-org/example-repo" },
+          "labels": { "nodes": [] },
+          "comments": { "totalCount": 0 },
+          "commits": { "nodes": [{ "commit": { "statusCheckRollup": null } }] }
+        }
+      ]
+    }
+  },
+  "errors": [
+    { "type": "FORBIDDEN",
+      "message": "Resource not accessible by integration" }
+  ]
+}
