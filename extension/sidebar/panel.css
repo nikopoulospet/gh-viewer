@@ -1,0 +1,103 @@
+:root {
+  --bg: #ffffff; --fg: #1f2328; --muted: #59636e; --border: #d1d9e0;
+  --surface: #f6f8fa; --hover: #eef1f4; --accent: #0969da;
+  --ok: #1a7f37; --bad: #cf222e; --wait: #9a6700;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0d1117; --fg: #e6edf3; --muted: #9198a1; --border: #30363d;
+    --surface: #161b22; --hover: #21262d; --accent: #4493f8;
+    --ok: #3fb950; --bad: #f85149; --wait: #d29922;
+  }
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body {
+  display: flex; flex-direction: column;
+  font: 12px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
+  background: var(--bg); color: var(--fg);
+}
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+.bar {
+  display: flex; gap: 4px; align-items: center; flex: 0 0 auto;
+  padding: 6px; border-bottom: 1px solid var(--border); background: var(--surface);
+}
+select {
+  flex: 1 1 auto; min-width: 0; font: inherit; color: inherit;
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: 6px; padding: 3px 6px;
+}
+button { font: inherit; color: inherit; background: var(--bg);
+  border: 1px solid var(--border); border-radius: 6px; padding: 3px 8px; cursor: pointer; }
+button:hover { background: var(--hover); }
+button.icon { padding: 3px 7px; }
+button.primary { background: var(--accent); color: #fff; border-color: transparent; margin-top: 8px; }
+button.link { background: none; border: none; color: var(--accent); padding: 4px 0; margin-top: 6px; }
+
+#view { flex: 1 1 auto; overflow-y: auto; overflow-x: hidden; }
+#status {
+  flex: 0 0 auto; padding: 4px 8px; font-size: 11px; color: var(--muted);
+  border-top: 1px solid var(--border); background: var(--surface);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-height: 22px;
+}
+#status.warn { color: var(--wait); }
+
+.pane { padding: 14px; }
+.pane h2 { font-size: 14px; margin: 0 0 8px; }
+.muted { color: var(--muted); }
+.error { color: var(--bad); }
+input[type="text"] {
+  width: 100%; font: inherit; color: inherit; background: var(--bg);
+  border: 1px solid var(--border); border-radius: 6px; padding: 5px 7px; margin-top: 6px;
+}
+.code {
+  font: 20px/1.4 ui-monospace, monospace; letter-spacing: 3px; text-align: center;
+  padding: 10px; margin: 10px 0; background: var(--surface);
+  border: 1px dashed var(--border); border-radius: 8px; cursor: pointer;
+}
+.primary-link { display: inline-block; margin: 4px 0 10px; font-weight: 600; }
+
+.rows { list-style: none; margin: 0; padding: 0; }
+.row {
+  position: relative; padding: 8px 26px 8px 10px;
+  border-bottom: 1px solid var(--border); cursor: pointer;
+}
+.row:hover { background: var(--hover); }
+.row-top { font-weight: 600; }
+.row .title { overflow-wrap: anywhere; }
+.row-meta {
+  display: flex; flex-wrap: wrap; gap: 6px; color: var(--muted);
+  font-size: 11px; margin-top: 2px;
+}
+.row .open {
+  position: absolute; top: 6px; right: 6px; padding: 2px 4px;
+  color: var(--muted); font-size: 13px;
+}
+.row .open:hover { color: var(--accent); text-decoration: none; }
+
+.chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 5px; }
+.chip {
+  font-size: 10px; padding: 1px 6px; border-radius: 999px;
+  border: 1px solid var(--border); color: var(--muted); white-space: nowrap;
+}
+.chip.ok { color: var(--ok); border-color: currentColor; }
+.chip.bad { color: var(--bad); border-color: currentColor; }
+.chip.wait { color: var(--wait); border-color: currentColor; }
+.chip.label { border-color: transparent; }
+
+.detail { padding: 12px; }
+.detail-title { font-size: 14px; margin: 0 0 4px; overflow-wrap: anywhere; }
+.detail-link { display: inline-block; margin: 8px 0; }
+.section {
+  font-size: 11px; text-transform: uppercase; letter-spacing: .04em;
+  color: var(--muted); margin: 14px 0 6px;
+  border-bottom: 1px solid var(--border); padding-bottom: 3px;
+}
+.checks { list-style: none; margin: 0; padding: 0; }
+.check { display: flex; gap: 6px; align-items: baseline; padding: 3px 0; font-size: 11px; }
+.check .muted { margin-left: auto; }
+.dot.ok { color: var(--ok); } .dot.bad { color: var(--bad); } .dot.wait { color: var(--wait); }
+.body { white-space: pre-wrap; overflow-wrap: anywhere; color: var(--fg); margin: 4px 0; }
+.comment { border-top: 1px solid var(--border); padding-top: 6px; margin-top: 8px; }
