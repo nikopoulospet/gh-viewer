@@ -67,6 +67,16 @@ GV.DEFAULT_QUERIES = [
     count: "search.issueCount",
   },
   {
+    // GitHub does not make a PR's author its assignee, so "assigned to me"
+    // legitimately excludes your own PRs. This is the view that shows them.
+    id: "prs-i-opened",
+    name: "PRs I opened",
+    document: SEARCH_DOC,
+    variables: { q: "is:pr state:open author:@me archived:false", first: 30 },
+    list: "search.nodes",
+    count: "search.issueCount",
+  },
+  {
     id: "awaiting-my-review",
     name: "Awaiting my review",
     document: SEARCH_DOC,
