@@ -2,7 +2,7 @@
 // GitHub App device flow. Only a public client_id is involved - there is no
 // client secret anywhere in this extension, which is why the App must have
 // "Expire user authorization tokens" switched OFF (refreshing would need one).
-const GV = globalThis.GV || (globalThis.GV = {});
+globalThis.GV = globalThis.GV || {};
 
 const DEVICE_CODE_URL = "https://github.com/login/device/code";
 const TOKEN_URL = "https://github.com/login/oauth/access_token";

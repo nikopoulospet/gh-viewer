@@ -1,7 +1,7 @@
 "use strict";
 // All GitHub-supplied strings (titles, labels, comment bodies) are inserted
 // with textContent, never innerHTML - a PR title is untrusted input.
-const GV = globalThis.GV || (globalThis.GV = {});
+globalThis.GV = globalThis.GV || {};
 
 // Drill-down. Deliberately omits additions/deletions/changedFiles and anything
 // else derived from the diff: this App never asks for code.
@@ -39,6 +39,7 @@ GV.DETAIL_DOC = `query($id: ID!) {
   }
 }`;
 
+(function () {
 function el(tag, className, text) {
   const node = document.createElement(tag);
   if (className) node.className = className;
@@ -233,3 +234,4 @@ GV.render = {
     return wrap;
   },
 };
+})();

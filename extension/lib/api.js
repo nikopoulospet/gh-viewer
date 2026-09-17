@@ -1,7 +1,7 @@
 "use strict";
 // api.github.com sends permissive CORS headers, so the extension needs no host
 // permission to query it - only the device-flow endpoints on github.com do.
-const GV = globalThis.GV || (globalThis.GV = {});
+globalThis.GV = globalThis.GV || {};
 
 const ENDPOINT = "https://api.github.com/graphql";
 

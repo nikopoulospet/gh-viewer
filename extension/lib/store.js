@@ -1,7 +1,7 @@
 "use strict";
 // Settings and saved queries. Everything lives in browser.storage.local -
 // nothing is ever sent anywhere except to api.github.com.
-const GV = globalThis.GV || (globalThis.GV = {});
+globalThis.GV = globalThis.GV || {};
 
 GV.AuthError = class AuthError extends Error {};
 
