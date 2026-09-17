@@ -116,6 +116,118 @@ test("ctrl-click sends the tab to the background", async () => {
   assert.equal(browser.calls.tabs[0].active, false);
 });
 
+const PR_URL = "https://github.com/example-org/example-repo/pull/41";
+
+test("clicking a link already open in another tab focuses it instead of duplicating it", async () => {
+  const browser = mockBrowser(SIGNED_IN, {
+    tabs: [{ id: 77, windowId: 9, url: PR_URL }],
+  });
+  const dom = await loadPage("sidebar/panel.html", {
+    browser,
+    fetch: mockFetch([fixture("search")]),
+  });
+  await settle();
+
+  dom.window.document.querySelector(".row .open").dispatchEvent(
+    new dom.window.MouseEvent("click", { bubbles: true, cancelable: true })
+  );
+  await settle();
+
+  assert.equal(browser.calls.tabs.length, 0, "no duplicate tab should be created");
+  assert.equal(browser.calls.tabUpdates.length, 1);
+  assert.deepEqual(browser.calls.tabUpdates[0], { id: 77, active: true });
+
+  // The matching tab may be in another window, so that window must be
+  // brought to the front too.
+  assert.equal(browser.calls.windowUpdates.length, 1);
+  assert.deepEqual(browser.calls.windowUpdates[0], { id: 9, focused: true });
+});
+
+test("clicking a link with no matching open tab opens a new one, as before", async () => {
+  const browser = mockBrowser(SIGNED_IN, {
+    tabs: [{ id: 1, windowId: 1, url: "https://github.com/example-org/example-repo/pull/999" }],
+  });
+  const dom = await loadPage("sidebar/panel.html", {
+    browser,
+    fetch: mockFetch([fixture("search")]),
+  });
+  await settle();
+
+  dom.window.document.querySelector(".row .open").dispatchEvent(
+    new dom.window.MouseEvent("click", { bubbles: true, cancelable: true })
+  );
+  await settle();
+
+  assert.equal(browser.calls.tabs.length, 1);
+  assert.equal(browser.calls.tabs[0].url, PR_URL);
+  assert.equal(browser.calls.tabs[0].active, true);
+  assert.equal(browser.calls.tabUpdates.length, 0);
+  assert.equal(browser.calls.windowUpdates.length, 0);
+});
+
+test("ctrl-click always opens a new background tab, even when a matching tab exists", async () => {
+  const browser = mockBrowser(SIGNED_IN, {
+    tabs: [{ id: 77, windowId: 9, url: PR_URL }],
+  });
+  const dom = await loadPage("sidebar/panel.html", {
+    browser,
+    fetch: mockFetch([fixture("search")]),
+  });
+  await settle();
+
+  dom.window.document.querySelector(".row .open").dispatchEvent(
+    new dom.window.MouseEvent("click", { bubbles: true, cancelable: true, ctrlKey: true })
+  );
+  await settle();
+
+  assert.equal(browser.calls.tabs.length, 1, "a modifier click always creates a tab");
+  assert.equal(browser.calls.tabs[0].active, false, "and it goes to the background");
+  assert.equal(browser.calls.tabUpdates.length, 0, "the existing match must not be hijacked");
+  assert.equal(browser.calls.windowUpdates.length, 0);
+});
+
+test("a match differing only by URL fragment still counts as the same tab", async () => {
+  const browser = mockBrowser(SIGNED_IN, {
+    tabs: [{ id: 5, windowId: 1, url: `${PR_URL}#issuecomment-123` }],
+  });
+  const dom = await loadPage("sidebar/panel.html", {
+    browser,
+    fetch: mockFetch([fixture("search")]),
+  });
+  await settle();
+
+  dom.window.document.querySelector(".row .open").dispatchEvent(
+    new dom.window.MouseEvent("click", { bubbles: true, cancelable: true })
+  );
+  await settle();
+
+  assert.equal(browser.calls.tabs.length, 0, "the fragment-only difference is still a match");
+  assert.deepEqual(browser.calls.tabUpdates[0], { id: 5, active: true });
+});
+
+test("a browser.tabs.query failure degrades to opening a new tab rather than a no-op", async () => {
+  const browser = mockBrowser(SIGNED_IN, {
+    tabs: [{ id: 77, windowId: 9, url: PR_URL }],
+  });
+  browser.api.tabs.query = async () => {
+    throw new Error("Missing host permission for the tab");
+  };
+  const dom = await loadPage("sidebar/panel.html", {
+    browser,
+    fetch: mockFetch([fixture("search")]),
+  });
+  await settle();
+
+  dom.window.document.querySelector(".row .open").dispatchEvent(
+    new dom.window.MouseEvent("click", { bubbles: true, cancelable: true })
+  );
+  await settle();
+
+  assert.equal(browser.calls.tabs.length, 1, "the click must still open something");
+  assert.equal(browser.calls.tabs[0].url, PR_URL);
+  assert.equal(browser.calls.tabUpdates.length, 0);
+});
+
 test("a partial GraphQL error is reported, not swallowed", async () => {
   // GitHub answers with data AND errors when the App cannot read a field.
   // The rows still have to render, with the gap called out.

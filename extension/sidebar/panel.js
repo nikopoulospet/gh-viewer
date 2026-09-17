@@ -26,16 +26,51 @@ function show(node, { back = false } = {}) {
   select.hidden = back;
 }
 
-// --- links always open in a new tab -------------------------------------
-// The sidebar is a fixed workspace; nothing navigates it away.
+// --- links focus an existing tab, or open a new one ----------------------
+// The sidebar is a fixed workspace; nothing navigates it away. A plain click
+// reuses a tab already open at that URL instead of piling up duplicates. A
+// modifier (middle-click, ctrl/cmd/shift-click) is an explicit request for a
+// new background tab, so it always gets one, even if a match exists.
 document.addEventListener("click", (event) => {
   const anchor = event.target.closest?.("a[href]");
   if (!anchor || !/^https?:/i.test(anchor.href)) return;
   event.preventDefault();
   event.stopPropagation();
   const background = event.button === 1 || event.ctrlKey || event.metaKey || event.shiftKey;
-  browser.tabs.create({ url: anchor.href, active: !background });
+  openLink(anchor.href, background);
 });
+
+// Finds a tab already open at `url`: an exact match first, falling back to
+// one that differs only by URL fragment (so a PR link and the same PR
+// scrolled to a comment count as the same page). The query string is never
+// ignored - GitHub search URLs differ meaningfully by query.
+//
+// `tabs.query` needs the `tabs` permission; if it throws (or is missing) a
+// click must still open something rather than silently doing nothing.
+async function findOpenTab(url) {
+  try {
+    const tabs = await browser.tabs.query({});
+    const exact = tabs.find((t) => t.url === url);
+    if (exact) return exact;
+    const withoutFragment = url.split("#")[0];
+    return tabs.find((t) => t.url && t.url.split("#")[0] === withoutFragment) || null;
+  } catch (e) {
+    console.warn("gh-viewer: tabs.query failed, opening a new tab", e);
+    return null;
+  }
+}
+
+async function openLink(url, background) {
+  if (!background) {
+    const existing = await findOpenTab(url);
+    if (existing) {
+      await browser.tabs.update(existing.id, { active: true });
+      await browser.windows.update(existing.windowId, { focused: true });
+      return;
+    }
+  }
+  browser.tabs.create({ url, active: !background });
+}
 
 document.addEventListener("auxclick", (event) => {
   if (event.button === 1) event.target.closest?.("a[href]") && event.preventDefault();

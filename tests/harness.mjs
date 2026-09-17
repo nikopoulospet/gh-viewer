@@ -17,10 +17,10 @@ export function fixture(name) {
   return JSON.parse(fs.readFileSync(path.join(HERE, "fixtures", `${name}.json`), "utf8"));
 }
 
-export function mockBrowser(initial = {}) {
+export function mockBrowser(initial = {}, { tabs: openTabs = [] } = {}) {
   const store = { ...initial };
   const changeListeners = [];
-  const calls = { tabs: [], options: 0, sets: [] };
+  const calls = { tabs: [], tabQueries: [], tabUpdates: [], windowUpdates: [], options: 0, sets: [] };
 
   const api = {
     storage: {
@@ -50,6 +50,20 @@ export function mockBrowser(initial = {}) {
       async create(options) {
         calls.tabs.push(options);
         return { id: calls.tabs.length };
+      },
+      // Seeded with the `tabs` option to mockBrowser() so a test can assert
+      // against "currently open" tabs without a real browser window.
+      async query(queryInfo) {
+        calls.tabQueries.push(queryInfo);
+        return openTabs.slice();
+      },
+      async update(tabId, updateInfo) {
+        calls.tabUpdates.push({ id: tabId, ...updateInfo });
+      },
+    },
+    windows: {
+      async update(windowId, updateInfo) {
+        calls.windowUpdates.push({ id: windowId, ...updateInfo });
       },
     },
     runtime: {
