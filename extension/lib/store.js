@@ -54,10 +54,51 @@ const DISCUSSION_DOC = `query($q: String!, $first: Int = 30) {
   }
 }`;
 
+// GitHub's issue search has no OR between qualifiers, so "assigned to me or
+// opened by me" cannot be expressed as one search string. Two aliased searches
+// travel in a single request for the same round trip, and the panel merges and
+// dedupes the results (a PR you opened AND were assigned appears in both).
+// `is:open` already includes drafts - a draft PR is an open PR.
+const MINE_DOC = `query($assigned: String!, $authored: String!, $first: Int = 30) {
+  rateLimit { remaining }
+  assigned: search(query: $assigned, type: ISSUE, first: $first) {
+    issueCount
+    nodes { __typename ...row }
+  }
+  authored: search(query: $authored, type: ISSUE, first: $first) {
+    issueCount
+    nodes { __typename ...row }
+  }
+}
+
+fragment row on PullRequest {
+  id number title url isDraft state updatedAt reviewDecision
+  statusCheckRollup { state }
+  author { login } repository { nameWithOwner }
+  labels(first: 8) { nodes { name color } }
+  comments { totalCount }
+}`;
+
 GV.SEARCH_DOC = SEARCH_DOC;
 
 // Seeded on first run. Every one is editable and deletable in the options page.
 GV.DEFAULT_QUERIES = [
+  {
+    // Everything of mine in flight, however it became mine. `detail.sections`
+    // trims the drill-in to just the description: for triaging your own work
+    // the body is the point, not the check list.
+    id: "my-prs",
+    name: "My PRs (assigned or opened)",
+    document: MINE_DOC,
+    variables: {
+      assigned: "is:pr is:open assignee:@me archived:false",
+      authored: "is:pr is:open author:@me archived:false",
+      first: 30,
+    },
+    list: ["assigned.nodes", "authored.nodes"],
+    count: ["assigned.issueCount", "authored.issueCount"],
+    detail: { sections: ["description"] },
+  },
   {
     id: "my-open-prs",
     name: "My open PRs",
@@ -156,6 +197,37 @@ GV.store = {
   async setSelectedQueryId(selected) {
     return browser.storage.local.set({ selected });
   },
+};
+
+// A query's `list` may name one path or several. Several are concatenated and
+// deduped by node id, which is how one view merges two searches.
+GV.collect = function collect(data, list) {
+  const paths = Array.isArray(list) ? list : [list];
+  const seen = new Set();
+  const nodes = [];
+  for (const path of paths) {
+    for (const node of GV.pluck(data, path) || []) {
+      if (!node) continue;
+      const key = node.id || `${node.url || ""}#${node.number || ""}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      nodes.push(node);
+    }
+  }
+  return nodes;
+};
+
+// `count` follows the same rule: several paths are summed. The total can
+// exceed the rendered count, since the searches may overlap.
+GV.total = function total(data, count) {
+  if (count == null || count === "") return null;
+  const paths = Array.isArray(count) ? count : [count];
+  let sum = 0;
+  for (const path of paths) {
+    const value = GV.pluck(data, path);
+    if (typeof value === "number") sum += value;
+  }
+  return sum;
 };
 
 // "search.nodes" -> data.search.nodes, tolerating nulls along the way.

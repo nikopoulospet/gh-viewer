@@ -68,7 +68,26 @@ would type into GitHub's own search box:
 | PRs you opened that aren't drafts | `is:pr state:open author:@me draft:false` |
 | Stale PRs | `is:pr state:open assignee:@me updated:<2026-08-01` |
 
-`@me` always means you, so a view keeps working if someone else uses it.
+`@me` always means you, so a view keeps working if someone else uses it. Note
+that `is:open` already includes drafts — a draft PR is an open PR — and that a
+PR's author is **not** automatically its assignee, which is why "assigned to
+me" legitimately excludes PRs you opened yourself.
+
+### Combining two searches
+
+GitHub's search has no `OR` between qualifiers, so "assigned to me **or** opened
+by me" cannot be one search string. A view can run two searches at once instead:
+give the query two aliased searches, then list both paths, comma separated, in
+**list path**. The results are merged and duplicates removed, so a PR that is
+both assigned to you and opened by you appears once. The shipped
+**My PRs (assigned or opened)** view works exactly this way.
+
+### Showing less on drill-in
+
+**Detail sections** controls what the drill-in view shows: any of `chips`,
+`checks`, `reviews`, `description`, `comments`, comma separated. Leave it blank
+for everything. Setting it to just `description` gives you the write-up and
+nothing else — the title and the link to GitHub always stay.
 
 Each view also has a **GraphQL document** — the actual query sent to GitHub.
 The default one fetches the fields the list needs, and most of the time you can

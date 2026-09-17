@@ -175,7 +175,15 @@ def _(d):
         window.fetch = () => Promise.resolve({
           ok: true, status: 200, json: () => Promise.resolve(fixture),
         });
-        return browser.storage.local.set({ token: 'ghu_smoke' }).then(() => boot());
+        // Pin the query too: the fixture is a single `search.nodes` response,
+        // so the view under test must be one that reads that shape.
+        return browser.storage.local.set({
+          token: 'ghu_smoke',
+          queries: [{
+            id: 'smoke', name: 'Smoke', document: 'query { x }', variables: {},
+            list: 'search.nodes', count: 'search.issueCount',
+          }],
+        }).then(() => boot());
         """,
         [fixture],
     )
@@ -198,6 +206,10 @@ def _(d):
 
 @check("the options page loads and lists the default queries")
 def _(d):
+    # An earlier check seeded a single query into storage, and these checks
+    # share one browser session. Clear it so the page falls back to the
+    # defaults this check is actually about.
+    d.script("return browser.storage.local.remove('queries');")
     open_extension_page(d, f"{BASE}/options/options.html")
     count = wait_for(d, "document.querySelectorAll('.card').length", "query cards")
     assert count >= 5, f"expected the default queries, got {count}"

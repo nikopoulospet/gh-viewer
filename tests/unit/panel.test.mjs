@@ -4,6 +4,19 @@ import { loadPage, mockBrowser, mockFetch, fixture, settle } from "../harness.mj
 
 const SIGNED_IN = { token: "ghu_test", viewer: { login: "octocat" } };
 
+// Tests that feed the `search.json` fixture pin their own query rather than
+// relying on whichever default happens to sort first - otherwise adding a
+// default view breaks unrelated tests.
+const SIMPLE_QUERY = {
+  id: "simple",
+  name: "Simple search",
+  document: "query { x }",
+  variables: {},
+  list: "search.nodes",
+  count: "search.issueCount",
+};
+const SIGNED_IN_SIMPLE = { ...SIGNED_IN, queries: [SIMPLE_QUERY] };
+
 function text(dom, selector) {
   return [...dom.window.document.querySelectorAll(selector)].map((n) => n.textContent);
 }
@@ -29,7 +42,7 @@ test("without a token the panel asks you to connect", async () => {
 test("a search response renders one row per result", async () => {
   const fetch = mockFetch([fixture("search")]);
   const dom = await loadPage("sidebar/panel.html", {
-    browser: mockBrowser(SIGNED_IN),
+    browser: mockBrowser(SIGNED_IN_SIMPLE),
     fetch,
   });
   await settle();
@@ -59,7 +72,7 @@ test("a search response renders one row per result", async () => {
 test("clicking a row drills down with the detail query", async () => {
   const fetch = mockFetch([fixture("search"), fixture("detail")]);
   const dom = await loadPage("sidebar/panel.html", {
-    browser: mockBrowser(SIGNED_IN),
+    browser: mockBrowser(SIGNED_IN_SIMPLE),
     fetch,
   });
   await settle();
@@ -83,7 +96,7 @@ test("clicking a row drills down with the detail query", async () => {
 });
 
 test("links open in a new tab instead of navigating the sidebar", async () => {
-  const browser = mockBrowser(SIGNED_IN);
+  const browser = mockBrowser(SIGNED_IN_SIMPLE);
   const dom = await loadPage("sidebar/panel.html", {
     browser,
     fetch: mockFetch([fixture("search")]),
@@ -102,7 +115,7 @@ test("links open in a new tab instead of navigating the sidebar", async () => {
 });
 
 test("ctrl-click sends the tab to the background", async () => {
-  const browser = mockBrowser(SIGNED_IN);
+  const browser = mockBrowser(SIGNED_IN_SIMPLE);
   const dom = await loadPage("sidebar/panel.html", {
     browser,
     fetch: mockFetch([fixture("search")]),
@@ -119,7 +132,7 @@ test("ctrl-click sends the tab to the background", async () => {
 const PR_URL = "https://github.com/example-org/example-repo/pull/41";
 
 test("clicking a link already open in another tab focuses it instead of duplicating it", async () => {
-  const browser = mockBrowser(SIGNED_IN, {
+  const browser = mockBrowser(SIGNED_IN_SIMPLE, {
     tabs: [{ id: 77, windowId: 9, url: PR_URL }],
   });
   const dom = await loadPage("sidebar/panel.html", {
@@ -144,7 +157,7 @@ test("clicking a link already open in another tab focuses it instead of duplicat
 });
 
 test("clicking a link with no matching open tab opens a new one, as before", async () => {
-  const browser = mockBrowser(SIGNED_IN, {
+  const browser = mockBrowser(SIGNED_IN_SIMPLE, {
     tabs: [{ id: 1, windowId: 1, url: "https://github.com/example-org/example-repo/pull/999" }],
   });
   const dom = await loadPage("sidebar/panel.html", {
@@ -166,7 +179,7 @@ test("clicking a link with no matching open tab opens a new one, as before", asy
 });
 
 test("ctrl-click always opens a new background tab, even when a matching tab exists", async () => {
-  const browser = mockBrowser(SIGNED_IN, {
+  const browser = mockBrowser(SIGNED_IN_SIMPLE, {
     tabs: [{ id: 77, windowId: 9, url: PR_URL }],
   });
   const dom = await loadPage("sidebar/panel.html", {
@@ -187,7 +200,7 @@ test("ctrl-click always opens a new background tab, even when a matching tab exi
 });
 
 test("a match differing only by URL fragment still counts as the same tab", async () => {
-  const browser = mockBrowser(SIGNED_IN, {
+  const browser = mockBrowser(SIGNED_IN_SIMPLE, {
     tabs: [{ id: 5, windowId: 1, url: `${PR_URL}#issuecomment-123` }],
   });
   const dom = await loadPage("sidebar/panel.html", {
@@ -206,7 +219,7 @@ test("a match differing only by URL fragment still counts as the same tab", asyn
 });
 
 test("a browser.tabs.query failure degrades to opening a new tab rather than a no-op", async () => {
-  const browser = mockBrowser(SIGNED_IN, {
+  const browser = mockBrowser(SIGNED_IN_SIMPLE, {
     tabs: [{ id: 77, windowId: 9, url: PR_URL }],
   });
   browser.api.tabs.query = async () => {
@@ -232,7 +245,7 @@ test("a partial GraphQL error is reported, not swallowed", async () => {
   // GitHub answers with data AND errors when the App cannot read a field.
   // The rows still have to render, with the gap called out.
   const dom = await loadPage("sidebar/panel.html", {
-    browser: mockBrowser(SIGNED_IN),
+    browser: mockBrowser(SIGNED_IN_SIMPLE),
     fetch: mockFetch([fixture("partial")]),
   });
   await settle();
@@ -247,7 +260,7 @@ test("a partial GraphQL error is reported, not swallowed", async () => {
 });
 
 test("a rejected token drops back to the connect screen", async () => {
-  const browser = mockBrowser(SIGNED_IN);
+  const browser = mockBrowser(SIGNED_IN_SIMPLE);
   const dom = await loadPage("sidebar/panel.html", {
     browser,
     fetch: mockFetch([{ status: 401, body: { message: "Bad credentials" } }]),
@@ -264,7 +277,7 @@ test("re-run checks are deduped and failures sort first", async () => {
   // or buries the one red check under fifty green ones.
   const fetch = mockFetch([fixture("search"), fixture("detail")]);
   const dom = await loadPage("sidebar/panel.html", {
-    browser: mockBrowser(SIGNED_IN),
+    browser: mockBrowser(SIGNED_IN_SIMPLE),
     fetch,
   });
   await settle();
@@ -293,7 +306,7 @@ test("re-run checks are deduped and failures sort first", async () => {
 test("the detail view renders the body as markdown, not flat text", async () => {
   const fetch = mockFetch([fixture("search"), fixture("detail")]);
   const dom = await loadPage("sidebar/panel.html", {
-    browser: mockBrowser(SIGNED_IN),
+    browser: mockBrowser(SIGNED_IN_SIMPLE),
     fetch,
   });
   await settle();
@@ -317,4 +330,66 @@ test("the detail view renders the body as markdown, not flat text", async () => 
 
   // And the comment bodies go through the same path.
   assert.ok(dom.window.document.querySelectorAll(".comment .markdown em").length >= 1);
+});
+
+test("a view can merge two searches and dedupe the overlap", async () => {
+  // GitHub search has no OR between qualifiers, so "assigned or opened" runs as
+  // two aliased searches. The fixture puts one PR in both.
+  const dom = await loadPage("sidebar/panel.html", { browser: mockBrowser(SIGNED_IN_SIMPLE) });
+  await settle();
+  const { GV } = dom.window;
+  const data = fixture("mine").data;
+
+  const nodes = GV.collect(data, ["assigned.nodes", "authored.nodes"]);
+  assert.equal(nodes.length, 3, "four rows across two searches, one shared");
+  assert.ok(Array.isArray(nodes));
+  assert.equal(new Set(nodes.map((n) => n.id)).size, 3, "ids must be unique");
+
+  // The raw total may exceed what is rendered, because the searches overlap.
+  assert.equal(GV.total(data, ["assigned.issueCount", "authored.issueCount"]), 4);
+  assert.equal(GV.total(data, "assigned.issueCount"), 2, "a single path still works");
+});
+
+test("a query can limit the drill-in to just the description", async () => {
+  const queries = [{
+    id: "only-body",
+    name: "Only the body",
+    document: "query { x }",
+    variables: {},
+    list: "search.nodes",
+    count: "search.issueCount",
+    detail: { sections: ["description"] },
+  }];
+  const dom = await loadPage("sidebar/panel.html", {
+    browser: mockBrowser({ ...SIGNED_IN, queries }),
+    fetch: mockFetch([fixture("search"), fixture("detail")]),
+  });
+  await settle();
+  dom.window.document.querySelector(".row").dispatchEvent(
+    new dom.window.MouseEvent("click", { bubbles: true })
+  );
+  await settle();
+
+  const body = dom.window.document.body.textContent;
+  assert.ok(dom.window.document.querySelector(".markdown"), "description renders");
+  assert.doesNotMatch(body, /Checks \(/, "checks section suppressed");
+  assert.doesNotMatch(body, /Reviews/, "reviews section suppressed");
+  assert.equal(dom.window.document.querySelectorAll(".comment").length, 0,
+    "comments suppressed");
+
+  // Identity and the way out are never suppressed.
+  assert.match(body, /Retry flaky uploads/);
+  assert.ok([...dom.window.document.querySelectorAll("a")]
+    .some((a) => a.href.includes("/pull/41")), "the GitHub link survives");
+});
+
+test("the default set includes the merged mine view", async () => {
+  const dom = await loadPage("sidebar/panel.html", { browser: mockBrowser() });
+  const mine = dom.window.GV.DEFAULT_QUERIES.find((q) => q.id === "my-prs");
+  assert.ok(mine, "expected a my-prs default");
+  assert.deepEqual(Array.from(mine.list), ["assigned.nodes", "authored.nodes"]);
+  assert.deepEqual(Array.from(mine.detail.sections), ["description"]);
+  assert.match(mine.variables.assigned, /assignee:@me/);
+  assert.match(mine.variables.authored, /author:@me/);
+  assert.match(mine.variables.assigned, /is:open/, "is:open already includes drafts");
 });

@@ -6,6 +6,7 @@ const select = document.getElementById("query-select");
 const backButton = document.getElementById("back");
 
 let queries = [];
+let currentQuery = null;
 let abortDeviceFlow = null;
 
 function el(tag, className, text) {
@@ -216,6 +217,7 @@ async function startDeviceFlow() {
 
 async function runSelected() {
   const query = queries.find((q) => q.id === select.value) || queries[0];
+  currentQuery = query;
   if (!query) {
     return show(el("div", "pane", "No saved queries. Add one in settings (⚙)."));
   }
@@ -233,8 +235,8 @@ async function runSelected() {
     return show(el("div", "pane error", e.message));
   }
 
-  const nodes = GV.pluck(response.data, query.list) || [];
-  const total = GV.pluck(response.data, query.count);
+  const nodes = GV.collect(response.data, query.list);
+  const total = GV.total(response.data, query.count);
   const remaining = response.data?.rateLimit?.remaining;
 
   if (!nodes.length) {
@@ -270,7 +272,7 @@ async function openDetail(id) {
   try {
     const { data, errors } = await GV.api.graphql(GV.DETAIL_DOC, { id });
     if (!data?.node) throw new Error(errors?.[0]?.message || "not found");
-    show(GV.render.detail(data.node), { back: true });
+    show(GV.render.detail(data.node, currentQuery?.detail || {}), { back: true });
     setStatus(errors?.length ? describeErrors(errors) : "", errors?.length ? "warn" : "");
   } catch (e) {
     if (e instanceof GV.AuthError) return showConnect(e.message);

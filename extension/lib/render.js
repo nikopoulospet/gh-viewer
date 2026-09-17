@@ -167,7 +167,11 @@ GV.render = {
     return list;
   },
 
-  detail(node) {
+  // `options.sections` limits which sections render, so a view can ask for
+  // just the description. Title, meta line and the GitHub link always show -
+  // without them you cannot tell what you are looking at or go read it.
+  detail(node, options = {}) {
+    const wants = (name) => !options.sections || options.sections.includes(name);
     const wrap = el("div", "detail");
 
     const heading = el("h2", "detail-title", node.title);
@@ -184,17 +188,21 @@ GV.render = {
     wrap.append(link);
 
     const chips = el("div", "chips");
-    if (node.isDraft) chips.append(el("span", "chip wait", "draft"));
-    if (node.merged) chips.append(el("span", "chip ok", "merged"));
-    const review = REVIEW_LABELS[node.reviewDecision];
-    if (review) chips.append(el("span", `chip ${review[1]}`, review[0]));
-    for (const label of node.labels?.nodes || []) chips.append(labelChip(label));
-    for (const assignee of node.assignees?.nodes || []) {
-      chips.append(el("span", "chip", `@${assignee.login}`));
+    if (wants("chips")) {
+      if (node.isDraft) chips.append(el("span", "chip wait", "draft"));
+      if (node.merged) chips.append(el("span", "chip ok", "merged"));
+      const review = REVIEW_LABELS[node.reviewDecision];
+      if (review) chips.append(el("span", `chip ${review[1]}`, review[0]));
+      for (const label of node.labels?.nodes || []) chips.append(labelChip(label));
+      for (const assignee of node.assignees?.nodes || []) {
+        chips.append(el("span", "chip", `@${assignee.login}`));
+      }
     }
     if (chips.childNodes.length) wrap.append(chips);
 
-    const checks = summariseChecks(node.statusCheckRollup?.contexts?.nodes || []);
+    const checks = wants("checks")
+      ? summariseChecks(node.statusCheckRollup?.contexts?.nodes || [])
+      : [];
     if (checks.length) {
       wrap.append(el("h3", "section", `Checks (${checks.length})`));
       const list = el("ul", "checks check-runs");
@@ -216,7 +224,9 @@ GV.render = {
       wrap.append(list);
     }
 
-    const reviews = node.reviews?.nodes?.filter((r) => r.state !== "COMMENTED") || [];
+    const reviews = wants("reviews")
+      ? node.reviews?.nodes?.filter((r) => r.state !== "COMMENTED") || []
+      : [];
     if (reviews.length) {
       wrap.append(el("h3", "section", "Reviews"));
       const list = el("ul", "checks review-list");
@@ -230,12 +240,12 @@ GV.render = {
       wrap.append(list);
     }
 
-    if (node.bodyHTML) {
+    if (node.bodyHTML && wants("description")) {
       wrap.append(el("h3", "section", "Description"));
       wrap.append(GV.markdown(node.bodyHTML));
     }
 
-    const comments = node.comments?.nodes || [];
+    const comments = wants("comments") ? node.comments?.nodes || [] : [];
     if (comments.length) {
       wrap.append(el("h3", "section", `Latest comments`));
       for (const comment of comments.slice(-5).reverse()) {

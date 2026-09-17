@@ -54,10 +54,19 @@ function card(query) {
 
   const grid = document.createElement("div");
   grid.className = "grid";
-  const listPath = field("List path", query.list, "path");
-  const countPath = field("Count path", query.count, "path");
+  // Several comma-separated paths are merged and deduped, which is how one
+  // view combines two searches.
+  const listPath = field("List path(s)", [].concat(query.list || "").join(", "), "path");
+  const countPath = field("Count path(s)", [].concat(query.count || "").join(", "), "path");
   grid.append(listPath.wrap, countPath.wrap);
   root.append(grid);
+
+  const sections = field(
+    "Detail sections (blank = all: chips, checks, reviews, description, comments)",
+    (query.detail?.sections || []).join(", "),
+    "path"
+  );
+  root.append(sections.wrap);
 
   // Variables are JSON, so validate as the user types rather than at save time.
   vars.area.addEventListener("input", () => {
@@ -76,13 +85,20 @@ function card(query) {
     } catch (e) {
       throw new Error(`"${name.value || query.id}": variables are not valid JSON`);
     }
+    const paths = (value) => {
+      const parts = value.split(",").map((part) => part.trim()).filter(Boolean);
+      return parts.length > 1 ? parts : parts[0] || "";
+    };
+    const wanted = sections.area.value.split(",").map((s) => s.trim()).filter(Boolean);
+
     return {
       id: query.id,
       name: name.value.trim() || "Untitled",
       document: doc.area.value,
       variables: parsedVars,
-      list: listPath.area.value.trim(),
-      count: countPath.area.value.trim(),
+      list: paths(listPath.area.value),
+      count: paths(countPath.area.value),
+      ...(wanted.length ? { detail: { sections: wanted } } : {}),
     };
   };
 

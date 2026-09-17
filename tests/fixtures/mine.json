@@ -1,0 +1,139 @@
+{
+  "data": {
+    "rateLimit": {
+      "remaining": 4970
+    },
+    "assigned": {
+      "issueCount": 2,
+      "nodes": [
+        {
+          "__typename": "PullRequest",
+          "id": "PR_kwSYNTHETIC1",
+          "number": 41,
+          "title": "Retry flaky uploads instead of failing the batch",
+          "url": "https://github.com/example-org/example-repo/pull/41",
+          "isDraft": false,
+          "state": "OPEN",
+          "updatedAt": "2026-09-16T10:04:00Z",
+          "reviewDecision": "APPROVED",
+          "author": {
+            "login": "octocat"
+          },
+          "repository": {
+            "nameWithOwner": "example-org/example-repo"
+          },
+          "labels": {
+            "nodes": [
+              {
+                "name": "bug",
+                "color": "d73a4a"
+              },
+              {
+                "name": "needs-backport",
+                "color": "fef2c0"
+              }
+            ]
+          },
+          "comments": {
+            "totalCount": 4
+          },
+          "statusCheckRollup": {
+            "state": "SUCCESS"
+          }
+        },
+        {
+          "__typename": "PullRequest",
+          "id": "PR_kwSYNTHETIC2",
+          "number": 40,
+          "title": "Draft: split the scheduler into its own module",
+          "url": "https://github.com/example-org/example-repo/pull/40",
+          "isDraft": true,
+          "state": "OPEN",
+          "updatedAt": "2026-09-14T08:00:00Z",
+          "reviewDecision": "REVIEW_REQUIRED",
+          "author": {
+            "login": "hubot"
+          },
+          "repository": {
+            "nameWithOwner": "example-org/example-repo"
+          },
+          "labels": {
+            "nodes": []
+          },
+          "comments": {
+            "totalCount": 0
+          },
+          "statusCheckRollup": {
+            "state": "FAILURE"
+          }
+        }
+      ]
+    },
+    "authored": {
+      "issueCount": 2,
+      "nodes": [
+        {
+          "__typename": "PullRequest",
+          "id": "PR_kwSYNTHETIC1",
+          "number": 41,
+          "title": "Retry flaky uploads instead of failing the batch",
+          "url": "https://github.com/example-org/example-repo/pull/41",
+          "isDraft": false,
+          "state": "OPEN",
+          "updatedAt": "2026-09-16T10:04:00Z",
+          "reviewDecision": "APPROVED",
+          "author": {
+            "login": "octocat"
+          },
+          "repository": {
+            "nameWithOwner": "example-org/example-repo"
+          },
+          "labels": {
+            "nodes": [
+              {
+                "name": "bug",
+                "color": "d73a4a"
+              },
+              {
+                "name": "needs-backport",
+                "color": "fef2c0"
+              }
+            ]
+          },
+          "comments": {
+            "totalCount": 4
+          },
+          "statusCheckRollup": {
+            "state": "SUCCESS"
+          }
+        },
+        {
+          "__typename": "Issue",
+          "id": "I_kwSYNTHETIC3",
+          "number": 39,
+          "title": "Timeouts are reported as successes",
+          "url": "https://github.com/example-org/example-repo/issues/39",
+          "state": "OPEN",
+          "updatedAt": "2026-09-10T17:30:00Z",
+          "author": {
+            "login": "octocat"
+          },
+          "repository": {
+            "nameWithOwner": "example-org/example-repo"
+          },
+          "labels": {
+            "nodes": [
+              {
+                "name": "bug",
+                "color": "d73a4a"
+              }
+            ]
+          },
+          "comments": {
+            "totalCount": 2
+          }
+        }
+      ]
+    }
+  }
+}
