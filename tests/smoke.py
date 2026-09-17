@@ -121,7 +121,16 @@ def open_extension_page(driver, url):
 
     handles = driver.call("GET", driver.s("/window/handles"))
     driver.call("POST", driver.s("/window"), {"handle": handles[-1]})
-    wait_for(driver, "document.readyState === 'complete'", f"{url} to finish loading")
+
+    # A new tab starts at about:blank, whose readyState is ALREADY "complete",
+    # so waiting on readyState alone returns before the extension page has even
+    # begun loading. Wait for the location to actually be the target as well,
+    # or the first assertions race the page and fail only on slow runners.
+    wait_for(
+        driver,
+        f"location.href === {json.dumps(url)} && document.readyState === 'complete'",
+        f"{url} to finish loading",
+    )
 
 
 CHECKS = []
@@ -191,7 +200,7 @@ def _(d):
 def _(d):
     open_extension_page(d, f"{BASE}/options/options.html")
     count = wait_for(d, "document.querySelectorAll('.card').length", "query cards")
-    assert count >= 4, f"expected the 4 default queries, got {count}"
+    assert count >= 5, f"expected the default queries, got {count}"
 
 
 def main():

@@ -15,6 +15,19 @@ function el(tag, className, text) {
   return node;
 }
 
+// GraphQL reports a permission gap as an error naming the exact field that was
+// refused, in `path`. Without it "Resource not accessible by integration" gives
+// no clue which permission is missing, so the path is what makes it actionable.
+function describeErrors(errors) {
+  console.warn("gh-viewer: partial GraphQL response", errors);
+  const first = errors[0];
+  const path = Array.isArray(first.path)
+    ? first.path.filter((part) => typeof part !== "number").join(".")
+    : "";
+  const more = errors.length > 1 ? ` (+${errors.length - 1} more)` : "";
+  return `partial${path ? ` at ${path}` : ""}: ${first.message}${more}`;
+}
+
 function setStatus(text, tone) {
   statusBar.textContent = text || "";
   statusBar.className = tone || "";
@@ -238,8 +251,7 @@ async function runSelected() {
   // A field the App lacks permission for comes back null with an error while
   // everything else renders - say so rather than showing a silent gap.
   if (response.errors?.length) {
-    const first = response.errors[0];
-    setStatus(`${parts.join(" · ")} — partial: ${first.message}`.slice(0, 200), "warn");
+    setStatus(`${parts.join(" · ")} — ${describeErrors(response.errors)}`.slice(0, 200), "warn");
   }
 }
 
@@ -259,7 +271,7 @@ async function openDetail(id) {
     const { data, errors } = await GV.api.graphql(GV.DETAIL_DOC, { id });
     if (!data?.node) throw new Error(errors?.[0]?.message || "not found");
     show(GV.render.detail(data.node), { back: true });
-    setStatus(errors?.length ? `partial: ${errors[0].message}` : "", errors?.length ? "warn" : "");
+    setStatus(errors?.length ? describeErrors(errors) : "", errors?.length ? "warn" : "");
   } catch (e) {
     if (e instanceof GV.AuthError) return showConnect(e.message);
     show(el("div", "pane error", e.message), { back: true });

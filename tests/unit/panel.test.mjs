@@ -239,7 +239,10 @@ test("a partial GraphQL error is reported, not swallowed", async () => {
 
   assert.equal(text(dom, ".row .title").length, 1);
   const status = dom.window.document.getElementById("status");
-  assert.match(status.textContent, /partial: Resource not accessible by integration/);
+  // The path is the actionable half: it names the field the App was refused,
+  // which is what identifies the missing permission.
+  assert.match(status.textContent, /partial at search\.nodes\.statusCheckRollup/);
+  assert.match(status.textContent, /Resource not accessible by integration/);
   assert.equal(status.className, "warn");
 });
 
@@ -253,4 +256,36 @@ test("a rejected token drops back to the connect screen", async () => {
 
   assert.match(dom.window.document.body.textContent, /Sign in to GitHub/);
   assert.equal(await browser.api.storage.local.get("token").then((r) => r.token), undefined);
+});
+
+test("re-run checks are deduped and failures sort first", async () => {
+  // A busy PR carries the same check name many times (one per re-run) and can
+  // have 60+ contexts; the detail view is useless if it shows stale duplicates
+  // or buries the one red check under fifty green ones.
+  const fetch = mockFetch([fixture("search"), fixture("detail")]);
+  const dom = await loadPage("sidebar/panel.html", {
+    browser: mockBrowser(SIGNED_IN),
+    fetch,
+  });
+  await settle();
+  dom.window.document.querySelector(".row").dispatchEvent(
+    new dom.window.MouseEvent("click", { bubbles: true })
+  );
+  await settle();
+
+  const names = [...dom.window.document.querySelectorAll(".check-runs .check")]
+    .map((n) => n.textContent);
+  assert.equal(names.length, 3, "two runs named `unit` should collapse to one");
+
+  const tones = [...dom.window.document.querySelectorAll(".check-runs .check .dot")]
+    .map((n) => n.className.replace("dot ", ""));
+  // `unit` failed and was re-run green, so only `lint` is still failing. That
+  // the re-run wins is the point: a fixed check must not keep showing red.
+  assert.deepEqual(tones, ["bad", "ok", "ok"], "failures must come first");
+
+  // The kept `unit` entry is the later run (runs/9), not the earlier one.
+  const unitLink = [...dom.window.document.querySelectorAll(".check-runs .check a")]
+    .find((a) => a.textContent === "unit");
+  assert.match(unitLink.href, /runs\/9$/, "the latest run must win, not the first");
+  assert.match(dom.window.document.body.textContent, /Checks \(3\)/);
 });

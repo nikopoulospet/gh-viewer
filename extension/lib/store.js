@@ -26,7 +26,7 @@ const SEARCH_DOC = `query($q: String!, $first: Int = 30) {
         author { login } repository { nameWithOwner }
         labels(first: 8) { nodes { name color } }
         comments { totalCount }
-        commits(last: 1) { nodes { commit { statusCheckRollup { state } } } }
+        statusCheckRollup { state }
       }
       ... on Issue {
         id number title url state updatedAt
@@ -63,6 +63,16 @@ GV.DEFAULT_QUERIES = [
     name: "My open PRs",
     document: SEARCH_DOC,
     variables: { q: "is:pr state:open assignee:@me archived:false", first: 30 },
+    list: "search.nodes",
+    count: "search.issueCount",
+  },
+  {
+    // GitHub does not make a PR's author its assignee, so "assigned to me"
+    // legitimately excludes your own PRs. This is the view that shows them.
+    id: "prs-i-opened",
+    name: "PRs I opened",
+    document: SEARCH_DOC,
+    variables: { q: "is:pr state:open author:@me archived:false", first: 30 },
     list: "search.nodes",
     count: "search.issueCount",
   },
