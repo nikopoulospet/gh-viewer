@@ -61,8 +61,16 @@ user-to-server token in `browser.storage.local`.
 
 `api.github.com` sends `Access-Control-Allow-Origin: *` and permits an
 `Authorization` header, so **queries need no host permission at all**. Only the
-device-flow endpoints do, which is why the manifest asks for exactly
-`storage` and `https://github.com/login/*`.
+device-flow endpoints do, which is why the manifest's host permission is
+exactly `https://github.com/login/*`.
+
+The manifest also asks for the `tabs` WebExtension permission, which is
+unrelated to GitHub host access: it lets the click handler in
+`sidebar/panel.js` call `browser.tabs.query()` to check whether a link is
+already open somewhere before deciding to focus it instead of opening a
+duplicate. It grants read access to the URLs of every open tab, which is why
+it's called out in the README rather than left as an unexplained manifest
+entry.
 
 ## Why not iframe github.com in the sidebar
 

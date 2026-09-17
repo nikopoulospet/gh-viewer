@@ -13,6 +13,7 @@
 
   "permissions": [
     "storage",
+    "tabs",
     "https://github.com/login/*"
   ],
 

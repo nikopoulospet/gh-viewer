@@ -7,8 +7,9 @@ instead of in a tab you keep losing.
 You pick what it shows. Each view is a GitHub search you save once, and the
 sidebar renders the results as a compact list: title, repo, review state, CI
 status, labels. Click a row to see the detail — checks, reviews, latest
-comments — without leaving the sidebar. Click any link and it opens in a new
-tab, so the list stays exactly where it was.
+comments — without leaving the sidebar. Click any link and it opens in a tab —
+switching to one you already have open on that page, rather than duplicating
+it — so the list stays exactly where it was.
 
 It can only read, and only issues, pull requests and discussions. It has no
 access to your code.
@@ -40,8 +41,9 @@ The dropdown at the top switches between your saved views. **↻** refreshes.
 
 - **Click a row** to drill into it — checks with their pass/fail state, who has
   reviewed, and the most recent comments.
-- **Click the ↗ on a row**, or any link anywhere, to open it in a new tab.
-  Middle-click or Ctrl-click opens it in the background instead.
+- **Click the ↗ on a row**, or any link anywhere. If you already have a tab
+  open on that page it switches to that tab; otherwise it opens a new one.
+  Middle-click or Ctrl-click always opens a new tab in the background instead.
 - **←** takes you back to the list.
 
 The bar along the bottom tells you how many results came back and how much of
@@ -90,6 +92,10 @@ One thing worth being precise about: GitHub's pull request permission is
 all-or-nothing, and it technically includes the diff of a PR. gh-viewer never
 asks for a diff and never displays one, but the permission itself isn't finer
 grained than that on GitHub's side.
+
+It also asks Firefox (not GitHub) for permission to see the URLs of your open
+tabs. That's what lets clicking a link switch to a tab you already have open
+instead of piling up a duplicate; it's used for nothing else.
 
 Your sign-in token is stored by Firefox on your own machine and is sent only to
 `api.github.com`. Nothing is sent anywhere else — there is no server behind this.
