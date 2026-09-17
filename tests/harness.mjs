@@ -67,6 +67,11 @@ export function mockBrowser(initial = {}, { tabs: openTabs = [] } = {}) {
       },
     },
     runtime: {
+      // Backed by the real manifest so tests see the shipped version and
+      // permission list rather than a stand-in that can drift from it.
+      getManifest: () => JSON.parse(
+        fs.readFileSync(path.join(EXTENSION, "manifest.json"), "utf8")
+      ),
       openOptionsPage: async () => { calls.options += 1; },
       sendMessage: async () => ({}),
     },

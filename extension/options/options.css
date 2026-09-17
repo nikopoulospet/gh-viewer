@@ -28,3 +28,31 @@ textarea.invalid { border-color: var(--bad); }
 #status { min-height: 20px; }
 #status.ok { color: var(--ok); }
 #status.bad { color: var(--bad); }
+
+.tabs {
+  display: flex; gap: 2px; margin-bottom: 18px;
+  border-bottom: 1px solid var(--border);
+}
+.tab {
+  border: 0; border-bottom: 2px solid transparent; border-radius: 0;
+  background: none; padding: 7px 12px; color: var(--muted); font-weight: 600;
+}
+.tab:hover { background: var(--hover); color: var(--fg); }
+.tab[aria-selected="true"] {
+  color: var(--fg); border-bottom-color: var(--accent);
+}
+.tab-panel[hidden] { display: none; }
+label.inline {
+  display: flex; gap: 6px; align-items: flex-start;
+  font-weight: 400; color: var(--muted); margin: 12px 0;
+}
+label.inline input { margin-top: 2px; }
+.warn-note {
+  border-left: 3px solid var(--wait); padding: 6px 10px; margin: 12px 0;
+  background: var(--surface); color: var(--fg);
+}
+.report {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 6px;
+  padding: 10px; margin-top: 12px; max-height: 26em; overflow: auto;
+  font: 11px/1.45 ui-monospace, monospace; white-space: pre;
+}

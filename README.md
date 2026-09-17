@@ -100,6 +100,17 @@ instead of piling up a duplicate; it's used for nothing else.
 Your sign-in token is stored by Firefox on your own machine and is sent only to
 `api.github.com`. Nothing is sent anywhere else — there is no server behind this.
 
+## Reporting a problem
+
+The **⚙ → Diagnostics** tab builds a snapshot of how gh-viewer is configured and
+what it can reach, ready to paste into a bug report. Tick *also run each saved
+query* and it will additionally run your queries and record which ones failed
+and why — usually the fastest way to identify a missing permission.
+
+**Your access token is never included**, only whether one exists and what kind
+it is. Do read the report before sharing it, though: your saved queries can name
+private repositories and organisations, and those do travel with it.
+
 ## If something looks off
 
 **The list is empty but GitHub's website isn't.** The App probably isn't
