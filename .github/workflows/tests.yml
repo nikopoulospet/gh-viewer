@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  # Fast logic layer: static script-collision check + jsdom unit tests.
+  # Kept separate from `smoke` so a slow/flaky browser run can never mask a
+  # fast, deterministic logic failure (or delay reporting one).
+  tests:
+    name: Static checks + unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: DeterminateSystems/nix-installer-action@main
+      - uses: DeterminateSystems/magic-nix-cache-action@main
+
+      - name: npm ci (tests/)
+        run: nix develop -c bash -c 'cd tests && npm ci'
+
+      - name: static check + unit tests
+        run: nix develop -c ./run-tests.sh fast
+
+  # Slow layer: installs the extension into real headless Firefox via
+  # geckodriver. Already runs -headless, so no display server is needed, but
+  # browser startup + WebDriver round-trips make this the slow job.
+  smoke:
+    name: Browser smoke test (headless Firefox)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: DeterminateSystems/nix-installer-action@main
+      - uses: DeterminateSystems/magic-nix-cache-action@main
+
+      - name: headless Firefox smoke test
+        timeout-minutes: 15
+        run: nix develop -c python3 tests/smoke.py
