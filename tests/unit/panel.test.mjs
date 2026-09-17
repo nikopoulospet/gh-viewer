@@ -239,7 +239,10 @@ test("a partial GraphQL error is reported, not swallowed", async () => {
 
   assert.equal(text(dom, ".row .title").length, 1);
   const status = dom.window.document.getElementById("status");
-  assert.match(status.textContent, /partial: Resource not accessible by integration/);
+  // The path is the actionable half: it names the field the App was refused,
+  // which is what identifies the missing permission.
+  assert.match(status.textContent, /partial at search\.nodes\.commits/);
+  assert.match(status.textContent, /Resource not accessible by integration/);
   assert.equal(status.className, "warn");
 });
 
