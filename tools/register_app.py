@@ -53,7 +53,12 @@ def manifest(port, repo_url):
         "hook_attributes": {"url": "https://example.com/unused", "active": False},
         "default_permissions": PERMISSIONS,
         "default_events": [],
-        "request_oauth_on_install": True,
+        # Off deliberately. It would redirect the installer through the OAuth
+        # callback to mint a user token, which only helps an app with a server
+        # on that callback. gh-viewer authenticates with device flow from the
+        # sidebar instead, so the redirect would just strand the installer on a
+        # page with an unused ?code= in the URL.
+        "request_oauth_on_install": False,
     }
 
 
