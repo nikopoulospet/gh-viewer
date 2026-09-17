@@ -1,101 +1,109 @@
 # gh-viewer
 
-A Firefox sidebar that renders **saved GraphQL queries** against GitHub — your
-open PRs, reviews waiting on you, issues, discussions — as a compact list you
-can drill into. Every link opens in a new tab; the sidebar never navigates away.
+A Firefox sidebar for the GitHub work that's actually yours — open PRs, reviews
+waiting on you, issues, discussions — sitting beside whatever else you're doing
+instead of in a tab you keep losing.
 
-Read-only by construction: the GitHub App requests no `contents` permission, so
-it cannot read code or diffs.
+You pick what it shows. Each view is a GitHub search you save once, and the
+sidebar renders the results as a compact list: title, repo, review state, CI
+status, labels. Click a row to see the detail — checks, reviews, latest
+comments — without leaving the sidebar. Click any link and it opens in a new
+tab, so the list stays exactly where it was.
 
-## Why not just iframe the GitHub page
+It can only read, and only issues, pull requests and discussions. It has no
+access to your code.
 
-GitHub sends `X-Frame-Options: deny` and CSP `frame-ancestors 'none'` to prevent
-clickjacking, so a sidebar cannot frame it without stripping security headers.
-Querying the API and rendering the result avoids the problem entirely — and one
-search costs a single rate-limit point out of 5,000/hour.
+## Install
 
-## Setup
+**1. Add it to Firefox.** Open `about:debugging#/runtime/this-firefox`, choose
+*Load Temporary Add-on*, and pick `extension/manifest.json` from this repo.
+Firefox removes temporary add-ons when it restarts; for a permanent install use
+a signed build (see [DEVELOPING.md](DEVELOPING.md)).
 
-**1. Register the App** (once):
+**2. Give it access to your GitHub.** Open the gh-viewer App page, press
+*Install*, and choose which account or organisation it may read — and within
+that, all repositories or a hand-picked few. You can change or revoke this at
+any time in GitHub's *Settings → Applications*.
 
-```bash
-python3 tools/register_app.py            # or --org your-test-org
-```
+> Installing on an organisation you don't own sends a request to an owner
+> instead. They approve it once, and it covers everyone in the org.
 
-It posts an exact permission manifest to GitHub, you press *Create GitHub App*,
-and it writes the `client_id` to `app.json` (gitignored). Then set two toggles
-it prints, which the manifest API cannot set:
+**3. Sign in.** Open the sidebar (View → Sidebar → gh-viewer, or the toolbar
+button). Press **Connect**. GitHub shows you a short code, you approve it in the
+tab that opens, and that's it — you won't be asked again.
 
-- **Enable Device Flow** — on. Without it the extension cannot authenticate.
-- **Expire user authorization tokens** — **off**. Refreshing an expiring token
-  requires a client secret, which a browser extension cannot safely hold.
-  With expiry off, the device flow alone is enough and you never reconnect.
+## Using it
 
-**2. Install the App** on an account or org from the URL the script prints,
-choosing which repositories it may read.
+The dropdown at the top switches between your saved views. **↻** refreshes.
+**⚙** opens the editor where you add and change views.
 
-**3. Load the extension:** `about:debugging#/runtime/this-firefox` →
-*Load Temporary Add-on* → `extension/manifest.json`. For a permanent install,
-sign it (`web-ext sign --source-dir=extension --channel=unlisted`).
+- **Click a row** to drill into it — checks with their pass/fail state, who has
+  reviewed, and the most recent comments.
+- **Click the ↗ on a row**, or any link anywhere, to open it in a new tab.
+  Middle-click or Ctrl-click opens it in the background instead.
+- **←** takes you back to the list.
 
-**4. Connect:** open the sidebar, paste the Client ID, press *Connect*, and
-approve the one-time code GitHub shows you.
+The bar along the bottom tells you how many results came back and how much of
+your GitHub API budget is left. You have 5,000 points an hour and each refresh
+costs one, so it's not something you'll run into.
 
-## Defining queries
+## Making your own views
 
-The gear icon opens the query editor. A query is:
+gh-viewer starts with four views — your open PRs, PRs awaiting your review,
+your open issues, and recent discussions. They're just starting points; edit or
+delete any of them in **⚙**.
 
-| Field | Meaning |
+The part you'll change most is the **search string**, which is exactly what you
+would type into GitHub's own search box:
+
+| To see | Search |
 | --- | --- |
-| `document` | Any GraphQL document the App's permissions allow |
-| `variables` | JSON passed alongside it — usually a search `q` string |
-| `list` | Dot path to the array to render, e.g. `search.nodes` |
-| `count` | Optional dot path for the status line, e.g. `search.issueCount` |
+| Your open PRs in one repo | `repo:some-org/some-repo is:pr state:open assignee:@me` |
+| Everything awaiting your review | `is:pr state:open review-requested:@me` |
+| Your team's review queue | `is:pr state:open team-review-requested:some-org/some-team` |
+| Bugs filed across an org | `org:some-org is:issue state:open label:bug` |
+| PRs you opened that aren't drafts | `is:pr state:open author:@me draft:false` |
+| Stale PRs | `is:pr state:open assignee:@me updated:<2026-08-01` |
 
-Rows drill down by node `id`, so keep `id` in the selection set. To scope a
-query to one repo, put it in the search string:
+`@me` always means you, so a view keeps working if someone else uses it.
 
-```
-repo:some-org/some-repo is:pr state:open assignee:@me
-```
+Each view also has a **GraphQL document** — the actual query sent to GitHub.
+The default one fetches the fields the list needs, and most of the time you can
+leave it alone. If you do write your own, two things matter: keep `id` in the
+fields you select (that's what drilling down uses), and point **list path** at
+the array you want rendered, e.g. `search.nodes`.
 
-Validate queries before wondering why the sidebar is empty:
+## What it can see
 
-```bash
-python3 tools/check_queries.py                 # documents are valid
-python3 tools/check_queries.py --token ghu_... # App permissions suffice too
-```
+When you install the App, GitHub asks it to read these, and nothing else:
 
-## Permissions
+- **Issues, pull requests and discussions** — the things it lists.
+- **Checks and commit statuses** — so a PR can show whether CI passed.
+- **Projects** — so views can include project board fields.
+- **Metadata** — repository names. Every GitHub App requires this.
 
-| Permission | Why |
-| --- | --- |
-| `metadata: read` | Mandatory for every GitHub App; repository names only |
-| `issues`, `pull_requests`, `discussions: read` | The things being listed |
-| `checks`, `statuses: read` | CI state beside each PR |
-| `repository_projects`, `organization_projects: read` | Project board fields |
+It cannot write anything: it can't comment, merge, close, or change a label.
+There is no `contents` permission, so it cannot read your source code.
 
-No `contents`, and nothing writable. One caveat worth knowing: GitHub's
-`pull_requests: read` is its narrowest PR permission and technically exposes PR
-diffs through the files field. gh-viewer never requests or renders them, but
-that is a property of GitHub's permission model, not something this App can
-narrow further.
+One thing worth being precise about: GitHub's pull request permission is
+all-or-nothing, and it technically includes the diff of a PR. gh-viewer never
+asks for a diff and never displays one, but the permission itself isn't finer
+grained than that on GitHub's side.
 
-The extension itself asks Firefox for only `storage` and
-`https://github.com/login/*` — `api.github.com` sends permissive CORS headers,
-so querying it needs no host permission at all.
+Your sign-in token is stored by Firefox on your own machine and is sent only to
+`api.github.com`. Nothing is sent anywhere else — there is no server behind this.
 
-## Layout
+## If something looks off
 
-```
-extension/
-  lib/store.js      settings, saved queries, default query set
-  lib/auth.js       device flow (public client_id only, no secret)
-  lib/api.js        GraphQL client, partial-error aware
-  lib/render.js     list rows and the drill-down view
-  sidebar/          the panel
-  options/          query editor
-tools/
-  register_app.py   App manifest registration flow
-  check_queries.py  validates every shipped GraphQL document
-```
+**The list is empty but GitHub's website isn't.** The App probably isn't
+installed on the organisation that owns those repos, or is installed but only
+on a few repositories. Check *Settings → Applications → gh-viewer*.
+
+**The status bar says "partial".** A field couldn't be read — usually a
+permission the App wasn't granted. The rest of the results are still accurate.
+
+**It asks you to connect again.** Your access was revoked on GitHub's side, or
+the App was configured to expire tokens. Pressing Connect again fixes it.
+
+**Nothing appears after you press Connect.** The App needs Device Flow enabled;
+whoever registered it can turn that on in its settings.
