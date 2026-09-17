@@ -101,3 +101,36 @@ input[type="text"] {
 .dot.ok { color: var(--ok); } .dot.bad { color: var(--bad); } .dot.wait { color: var(--wait); }
 .body { white-space: pre-wrap; overflow-wrap: anywhere; color: var(--fg); margin: 4px 0; }
 .comment { border-top: 1px solid var(--border); padding-top: 6px; margin-top: 8px; }
+
+/* Rendered markdown from GitHub's bodyHTML, after sanitising. Kept narrow and
+   dense: this is a sidebar, not a document viewer. */
+.markdown { white-space: normal; }
+.markdown > *:first-child { margin-top: 0; }
+.markdown > *:last-child { margin-bottom: 0; }
+.markdown p { margin: 0 0 8px; }
+.markdown h1, .markdown h2, .markdown h3,
+.markdown h4, .markdown h5, .markdown h6 {
+  font-size: 12px; font-weight: 600; margin: 12px 0 4px;
+}
+.markdown ul, .markdown ol { margin: 4px 0 8px; padding-left: 18px; }
+.markdown li { margin: 2px 0; }
+.markdown code {
+  font-family: ui-monospace, monospace; font-size: 11px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 4px; padding: 0 3px;
+}
+.markdown pre {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 6px; padding: 8px; margin: 4px 0 8px;
+  overflow-x: auto; /* long lines scroll instead of stretching the sidebar */
+}
+.markdown pre code { background: none; border: 0; padding: 0; }
+.markdown blockquote {
+  margin: 4px 0 8px; padding-left: 8px;
+  border-left: 3px solid var(--border); color: var(--muted);
+}
+.markdown img { max-width: 100%; height: auto; }
+.markdown table { border-collapse: collapse; margin: 4px 0 8px; font-size: 11px; }
+.markdown th, .markdown td { border: 1px solid var(--border); padding: 2px 6px; }
+.markdown hr { border: 0; border-top: 1px solid var(--border); margin: 10px 0; }
+.markdown input[type="checkbox"] { margin-right: 4px; vertical-align: middle; }

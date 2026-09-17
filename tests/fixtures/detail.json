@@ -5,7 +5,6 @@
       "number": 41,
       "title": "Retry flaky uploads instead of failing the batch",
       "url": "https://github.com/example-org/example-repo/pull/41",
-      "bodyText": "Uploads that time out now retry twice before the batch is failed.",
       "state": "OPEN",
       "isDraft": false,
       "merged": false,
@@ -58,8 +57,8 @@
               "login": "monalisa"
             },
             "createdAt": "2026-09-15T13:01:00Z",
-            "bodyText": "Does this cover the multipart path too?",
-            "url": "https://github.com/example-org/example-repo/pull/41#issuecomment-1"
+            "url": "https://github.com/example-org/example-repo/pull/41#issuecomment-1",
+            "bodyHTML": "<p>Does this cover the <em>multipart</em> path too?</p>"
           }
         ]
       },
@@ -94,7 +93,8 @@
             }
           ]
         }
-      }
+      },
+      "bodyHTML": "<p>Uploads that time out now <strong>retry twice</strong> before the batch is failed.</p>\n<h2>Notes</h2>\n<ul>\n<li>Backoff is <code>2s, 8s</code>.</li>\n<li>See <a href=\"/example-org/example-repo/issues/39\">#39</a>.</li>\n</ul>\n<pre><code>retries: 2\n</code></pre>\n<ul class=\"contains-task-list\"><li class=\"task-list-item\"><input type=\"checkbox\" disabled checked> covered by tests</li></ul>"
     }
   }
 }

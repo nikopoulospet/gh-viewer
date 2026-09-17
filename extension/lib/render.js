@@ -9,13 +9,13 @@ GV.DETAIL_DOC = `query($id: ID!) {
   node(id: $id) {
     __typename
     ... on PullRequest {
-      number title url bodyText state isDraft merged updatedAt createdAt
+      number title url bodyHTML state isDraft merged updatedAt createdAt
       reviewDecision
       author { login } repository { nameWithOwner }
       labels(first: 20) { nodes { name color } }
       assignees(first: 10) { nodes { login } }
       reviews(last: 20) { nodes { author { login } state submittedAt } }
-      comments(last: 10) { nodes { author { login } createdAt bodyText url } }
+      comments(last: 10) { nodes { author { login } createdAt bodyHTML url } }
       statusCheckRollup { state
         contexts(first: 100) { totalCount nodes {
           __typename
@@ -24,17 +24,17 @@ GV.DETAIL_DOC = `query($id: ID!) {
         } } }
     }
     ... on Issue {
-      number title url bodyText state updatedAt createdAt
+      number title url bodyHTML state updatedAt createdAt
       author { login } repository { nameWithOwner }
       labels(first: 20) { nodes { name color } }
       assignees(first: 10) { nodes { login } }
-      comments(last: 10) { nodes { author { login } createdAt bodyText url } }
+      comments(last: 10) { nodes { author { login } createdAt bodyHTML url } }
     }
     ... on Discussion {
-      number title url bodyText updatedAt createdAt
+      number title url bodyHTML updatedAt createdAt
       author { login } repository { nameWithOwner }
       category { name emoji }
-      comments(last: 10) { nodes { author { login } createdAt bodyText url } }
+      comments(last: 10) { nodes { author { login } createdAt bodyHTML url } }
     }
   }
 }`;
@@ -230,9 +230,9 @@ GV.render = {
       wrap.append(list);
     }
 
-    if (node.bodyText) {
+    if (node.bodyHTML) {
       wrap.append(el("h3", "section", "Description"));
-      wrap.append(el("p", "body", node.bodyText.slice(0, 2000)));
+      wrap.append(GV.markdown(node.bodyHTML));
     }
 
     const comments = node.comments?.nodes || [];
@@ -249,7 +249,7 @@ GV.render = {
           head.append(anchor);
         }
         block.append(head);
-        block.append(el("p", "body", (comment.bodyText || "").slice(0, 600)));
+        block.append(GV.markdown(comment.bodyHTML));
         wrap.append(block);
       }
     }

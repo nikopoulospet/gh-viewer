@@ -289,3 +289,32 @@ test("re-run checks are deduped and failures sort first", async () => {
   assert.match(unitLink.href, /runs\/9$/, "the latest run must win, not the first");
   assert.match(dom.window.document.body.textContent, /Checks \(3\)/);
 });
+
+test("the detail view renders the body as markdown, not flat text", async () => {
+  const fetch = mockFetch([fixture("search"), fixture("detail")]);
+  const dom = await loadPage("sidebar/panel.html", {
+    browser: mockBrowser(SIGNED_IN),
+    fetch,
+  });
+  await settle();
+  dom.window.document.querySelector(".row").dispatchEvent(
+    new dom.window.MouseEvent("click", { bubbles: true })
+  );
+  await settle();
+
+  const body = dom.window.document.querySelector(".markdown");
+  assert.ok(body, "the description should render through the markdown pipeline");
+  assert.equal(body.querySelectorAll("strong").length, 1);
+  assert.equal(body.querySelectorAll("pre code").length, 1, "code fences survive");
+  assert.ok(body.querySelectorAll("li").length >= 2, "list items survive");
+
+  // Relative links in a PR body must point back at github.com, not at the
+  // extension's own origin.
+  assert.equal(
+    body.querySelector("a").getAttribute("href"),
+    "https://github.com/example-org/example-repo/issues/39"
+  );
+
+  // And the comment bodies go through the same path.
+  assert.ok(dom.window.document.querySelectorAll(".comment .markdown em").length >= 1);
+});
