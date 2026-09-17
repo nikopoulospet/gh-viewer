@@ -73,14 +73,32 @@ that `is:open` already includes drafts — a draft PR is an open PR — and that
 PR's author is **not** automatically its assignee, which is why "assigned to
 me" legitimately excludes PRs you opened yourself.
 
+### Boolean searches (`OR`, `AND`, parentheses)
+
+GitHub has two search APIs and they differ here. The **GraphQL** one has no
+boolean operators — it matches `OR` and parentheses as ordinary words, so such a
+query silently returns nothing. The **REST** one supports them.
+
+A query can therefore set `"kind": "rest-search"`, which sends its `q` to REST
+search with `advanced_search=true`, and the full syntax works:
+
+```
+is:pr state:open (assignee:@me OR author:@me) archived:false
+```
+
+That is how the shipped **My PRs (assigned or opened)** view is written. The one
+thing REST search cannot return is CI status, so those rows carry no CI chip —
+views needing CI state stay on GraphQL.
+
+If a GraphQL query does use boolean operators, the sidebar says so rather than
+showing an empty list.
+
 ### Combining two searches
 
-GitHub's search has no `OR` between qualifiers, so "assigned to me **or** opened
-by me" cannot be one search string. A view can run two searches at once instead:
-give the query two aliased searches, then list both paths, comma separated, in
-**list path**. The results are merged and duplicates removed, so a PR that is
-both assigned to you and opened by you appears once. The shipped
-**My PRs (assigned or opened)** view works exactly this way.
+A view can also run several searches at once and merge them: list both paths,
+comma separated, in **list path**. Results are concatenated and duplicates
+removed by id. Useful when the two searches are genuinely different questions
+rather than one boolean expression.
 
 ### Showing less on drill-in
 

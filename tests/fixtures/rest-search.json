@@ -1,0 +1,43 @@
+{
+  "total_count": 2,
+  "incomplete_results": false,
+  "items": [
+    {
+      "node_id": "PR_kwSYNTHETIC1",
+      "number": 41,
+      "title": "Retry flaky uploads instead of failing the batch",
+      "html_url": "https://github.com/example-org/example-repo/pull/41",
+      "state": "open",
+      "draft": false,
+      "updated_at": "2026-09-16T10:04:00Z",
+      "user": {
+        "login": "octocat"
+      },
+      "repository_url": "https://api.github.com/repos/example-org/example-repo",
+      "labels": [
+        {
+          "name": "bug",
+          "color": "d73a4a"
+        }
+      ],
+      "comments": 4,
+      "pull_request": {
+        "url": "https://api.github.com/repos/example-org/example-repo/pulls/41"
+      }
+    },
+    {
+      "node_id": "I_kwSYNTHETIC3",
+      "number": 39,
+      "title": "Timeouts are reported as successes",
+      "html_url": "https://github.com/example-org/example-repo/issues/39",
+      "state": "open",
+      "updated_at": "2026-09-10T17:30:00Z",
+      "user": {
+        "login": "hubot"
+      },
+      "repository_url": "https://api.github.com/repos/example-org/example-repo",
+      "labels": [],
+      "comments": 0
+    }
+  ]
+}

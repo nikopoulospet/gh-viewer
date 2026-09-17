@@ -84,19 +84,20 @@ GV.SEARCH_DOC = SEARCH_DOC;
 // Seeded on first run. Every one is editable and deletable in the options page.
 GV.DEFAULT_QUERIES = [
   {
-    // Everything of mine in flight, however it became mine. `detail.sections`
-    // trims the drill-in to just the description: for triaging your own work
-    // the body is the point, not the check list.
+    // One request, expressed the way GitHub's own search box expresses it.
+    // REST search supports boolean operators; GraphQL search does not. The
+    // cost is that REST search returns no CI state, so these rows carry no CI
+    // chip - "My open PRs" below keeps that, via GraphQL.
     id: "my-prs",
     name: "My PRs (assigned or opened)",
-    document: MINE_DOC,
+    kind: "rest-search",
     variables: {
-      assigned: "is:pr is:open assignee:@me archived:false",
-      authored: "is:pr is:open author:@me archived:false",
-      first: 30,
+      q: "is:pr state:open (assignee:@me OR author:@me) archived:false",
+      per_page: 30,
+      sort: "updated",
     },
-    list: ["assigned.nodes", "authored.nodes"],
-    count: ["assigned.issueCount", "authored.issueCount"],
+    list: "items",
+    count: "total_count",
     detail: { sections: ["description"] },
   },
   {
@@ -197,6 +198,35 @@ GV.store = {
   async setSelectedQueryId(selected) {
     return browser.storage.local.set({ selected });
   },
+};
+
+// REST search returns a different shape from GraphQL: html_url not url, user
+// not author, a flat labels array, a repository_url to parse. Normalising here
+// means the renderer and the drill-down stay unaware of which API was used -
+// `node_id` is the same global id GraphQL uses, so drilling down still works.
+//
+// The one thing REST search cannot provide is statusCheckRollup, so rows from a
+// REST query carry no CI chip.
+GV.fromRestSearch = function fromRestSearch(body) {
+  const items = (body.items || []).map((item) => ({
+    __typename: item.pull_request ? "PullRequest" : "Issue",
+    id: item.node_id,
+    number: item.number,
+    title: item.title,
+    url: item.html_url,
+    isDraft: Boolean(item.draft),
+    state: (item.state || "").toUpperCase(),
+    updatedAt: item.updated_at,
+    reviewDecision: null,
+    statusCheckRollup: null,
+    author: item.user ? { login: item.user.login } : null,
+    repository: {
+      nameWithOwner: (item.repository_url || "").split("/repos/")[1] || "",
+    },
+    labels: { nodes: (item.labels || []).map((l) => ({ name: l.name, color: l.color })) },
+    comments: { totalCount: item.comments ?? 0 },
+  }));
+  return { items, total_count: body.total_count ?? items.length };
 };
 
 // A query's `list` may name one path or several. Several are concatenated and

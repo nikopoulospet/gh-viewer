@@ -80,8 +80,13 @@ export function mockBrowser(initial = {}, { tabs: openTabs = [] } = {}) {
 export function mockFetch(replies) {
   const queue = [...replies];
   const requests = [];
-  const fn = async (url, options) => {
-    requests.push({ url, body: JSON.parse(options.body) });
+  const fn = async (url, options = {}) => {
+    // GraphQL calls POST a JSON body; REST calls are plain GETs with none.
+    requests.push({
+      url,
+      body: options.body ? JSON.parse(options.body) : null,
+      headers: options.headers || {},
+    });
     const reply = queue.length > 1 ? queue.shift() : queue[0];
     if (reply instanceof Error) throw reply;
     return {

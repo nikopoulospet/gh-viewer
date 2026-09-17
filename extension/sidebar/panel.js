@@ -29,11 +29,23 @@ function describeErrors(errors) {
   return `partial${path ? ` at ${path}` : ""}: ${first.message}${more}`;
 }
 
-// GitHub's search API has no boolean operators: `a OR b` and parentheses are
+// REST issue search understands the boolean syntax the GraphQL API does not,
+// so `(assignee:@me OR author:@me)` is expressible in one request. The response
+// is normalised into the same node shape GraphQL returns.
+async function runRestSearch(query) {
+  const body = await GV.api.rest("/search/issues", {
+    ...query.variables,
+    advanced_search: "true",
+  });
+  return { data: GV.fromRestSearch(body), errors: null };
+}
+
+// GitHub's GraphQL search API has no boolean operators: `a OR b` and parentheses are
 // treated as literal search terms, so a query using them matches nothing and
 // returns a silent zero rather than an error. Recognise that specific shape and
 // say so, instead of letting it read as "you have no open PRs".
 function unsupportedBooleanHint(query) {
+  if (query?.kind === "rest-search") return null; // REST search supports them
   const values = Object.values(query?.variables || {}).filter((v) => typeof v === "string");
   const offender = values.find((v) => /\bOR\b|\bAND\b|\bNOT\b|[()]/.test(v));
   if (!offender) return null;
@@ -243,7 +255,9 @@ async function runSelected() {
 
   let response;
   try {
-    response = await GV.api.graphql(query.document, query.variables);
+    response = query.kind === "rest-search"
+      ? await runRestSearch(query)
+      : await GV.api.graphql(query.document, query.variables);
   } catch (e) {
     setStatus("");
     if (e instanceof GV.AuthError) return showConnect(e.message);

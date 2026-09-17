@@ -383,15 +383,18 @@ test("a query can limit the drill-in to just the description", async () => {
     .some((a) => a.href.includes("/pull/41")), "the GitHub link survives");
 });
 
-test("the default set includes the merged mine view", async () => {
+test("the shipped assigned-or-opened view uses REST boolean search", async () => {
   const dom = await loadPage("sidebar/panel.html", { browser: mockBrowser() });
   const mine = dom.window.GV.DEFAULT_QUERIES.find((q) => q.id === "my-prs");
   assert.ok(mine, "expected a my-prs default");
-  assert.deepEqual(Array.from(mine.list), ["assigned.nodes", "authored.nodes"]);
+
+  // GraphQL search matches OR as literal text and returns nothing; REST search
+  // with advanced_search=true is the only API that understands it.
+  assert.equal(mine.kind, "rest-search");
+  assert.match(mine.variables.q, /\(assignee:@me OR author:@me\)/);
+  assert.equal(mine.list, "items");
+  assert.equal(mine.count, "total_count");
   assert.deepEqual(Array.from(mine.detail.sections), ["description"]);
-  assert.match(mine.variables.assigned, /assignee:@me/);
-  assert.match(mine.variables.authored, /author:@me/);
-  assert.match(mine.variables.assigned, /is:open/, "is:open already includes drafts");
 });
 
 test("a search using OR explains itself instead of reading as 'no results'", async () => {
@@ -424,4 +427,72 @@ test("an ordinary empty result still reads as empty", async () => {
   });
   await settle();
   assert.match(dom.window.document.body.textContent, /Nothing matched this query/);
+});
+
+test("a REST-backed query renders rows and supports boolean operators", async () => {
+  // GraphQL search has no OR; REST search does, behind advanced_search=true.
+  const queries = [{
+    id: "boolean-rest", name: "Assigned or opened", kind: "rest-search",
+    variables: { q: "is:pr state:open (assignee:@me OR author:@me) archived:false", per_page: 30 },
+    list: "items", count: "total_count",
+  }];
+  const fetch = mockFetch([fixture("rest-search")]);
+  const dom = await loadPage("sidebar/panel.html", {
+    browser: mockBrowser({ ...SIGNED_IN, queries }),
+    fetch,
+  });
+  await settle();
+
+  // It must hit REST, with advanced_search on, or the operators are literal text.
+  const request = fetch.requests[0];
+  assert.match(request.url.toString(), /\/search\/issues/);
+  assert.match(request.url.toString(), /advanced_search=true/);
+  // Read the parsed parameter: URLSearchParams encodes spaces as "+", which
+  // decodeURIComponent does not undo.
+  const sent = new dom.window.URL(request.url.toString()).searchParams.get("q");
+  assert.equal(sent, "is:pr state:open (assignee:@me OR author:@me) archived:false");
+
+  const titles = [...dom.window.document.querySelectorAll(".row .title")].map((n) => n.textContent);
+  assert.equal(titles.length, 2);
+  assert.equal(titles[0], "Retry flaky uploads instead of failing the batch");
+
+  // REST fields are normalised into the shape the renderer already expects.
+  assert.ok([...dom.window.document.querySelectorAll(".row .num")]
+    .some((n) => n.textContent === "example-org/example-repo#41"));
+  assert.ok([...dom.window.document.querySelectorAll(".row .chips .chip")]
+    .some((c) => c.textContent === "bug"), "flat REST labels become chips");
+
+  // The row's link is html_url, not the API url.
+  assert.ok([...dom.window.document.querySelectorAll(".row .open")]
+    .some((a) => a.href === "https://github.com/example-org/example-repo/pull/41"));
+});
+
+test("the boolean warning does not fire for REST queries, where OR is valid", async () => {
+  const queries = [{
+    id: "rest-empty", name: "Empty but valid", kind: "rest-search",
+    variables: { q: "is:pr state:open (assignee:@me OR author:@me)" },
+    list: "items", count: "total_count",
+  }];
+  const dom = await loadPage("sidebar/panel.html", {
+    browser: mockBrowser({ ...SIGNED_IN, queries }),
+    fetch: mockFetch([{ total_count: 0, items: [] }]),
+  });
+  await settle();
+  const body = dom.window.document.body.textContent;
+  assert.match(body, /Nothing matched this query/);
+  assert.doesNotMatch(body, /does not support/, "REST search does support OR");
+});
+
+test("REST items normalise into GraphQL-shaped nodes", async () => {
+  const dom = await loadPage("sidebar/panel.html", { browser: mockBrowser() });
+  const { items, total_count } = dom.window.GV.fromRestSearch(fixture("rest-search"));
+
+  assert.equal(total_count, 2);
+  assert.equal(items[0].__typename, "PullRequest", "pull_request marks a PR");
+  assert.equal(items[1].__typename, "Issue");
+  assert.equal(items[0].id, "PR_kwSYNTHETIC1", "node_id is the GraphQL id, so drill-down works");
+  assert.equal(items[0].repository.nameWithOwner, "example-org/example-repo");
+  assert.equal(items[0].state, "OPEN", "REST lowercases state; GraphQL does not");
+  assert.equal(items[0].comments.totalCount, 4);
+  assert.equal(items[0].statusCheckRollup, null, "REST search cannot provide CI state");
 });
