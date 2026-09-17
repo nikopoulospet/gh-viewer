@@ -171,7 +171,71 @@ async function showAccount() {
     : "Not signed in.";
 }
 
+// --- tabs ----------------------------------------------------------------
+
+const tabs = [...document.querySelectorAll(".tab")];
+const panels = new Map(
+  tabs.map((tab) => [tab.dataset.tab, document.getElementById(`tab-${tab.dataset.tab}`)])
+);
+
+function selectTab(name) {
+  for (const tab of tabs) {
+    const active = tab.dataset.tab === name;
+    tab.setAttribute("aria-selected", String(active));
+    panels.get(tab.dataset.tab).hidden = !active;
+  }
+  // Survives a reload, so a report is still in view after you come back to it.
+  location.hash = name;
+}
+
+for (const tab of tabs) {
+  tab.addEventListener("click", () => selectTab(tab.dataset.tab));
+}
+
+// --- diagnostics ---------------------------------------------------------
+
+const reportBox = document.getElementById("report");
+const diagnosticsStatus = document.getElementById("diagnostics-status");
+let lastReport = "";
+
+function sayDiagnostics(text, tone) {
+  diagnosticsStatus.textContent = text;
+  diagnosticsStatus.className = tone || "muted";
+}
+
+document.getElementById("generate").addEventListener("click", async () => {
+  const probe = document.getElementById("probe").checked;
+  sayDiagnostics(probe ? "collecting state and querying GitHub…" : "collecting state…");
+  try {
+    const report = await GV.diagnostics.collect({ probe });
+    lastReport = GV.diagnostics.toText(report);
+    reportBox.textContent = lastReport;
+    reportBox.hidden = false;
+    const failed = (report.probe || []).filter((r) => !r.ok).length;
+    sayDiagnostics(
+      failed ? `report ready — ${failed} quer${failed === 1 ? "y" : "ies"} reported problems`
+             : "report ready",
+      failed ? "bad" : "ok"
+    );
+  } catch (e) {
+    sayDiagnostics(`could not build the report: ${e.message}`, "bad");
+  }
+});
+
+document.getElementById("copy").addEventListener("click", async () => {
+  if (!lastReport) return sayDiagnostics("generate a report first", "bad");
+  try {
+    await navigator.clipboard.writeText(lastReport);
+    sayDiagnostics("report copied to the clipboard", "ok");
+  } catch {
+    sayDiagnostics("could not reach the clipboard — select the text and copy it", "bad");
+  }
+});
+
 (async function boot() {
+  const requested = location.hash.replace("#", "");
+  selectTab(panels.has(requested) ? requested : "queries");
+
   clientInput.value = await GV.store.getClientId();
   queries = await GV.store.getQueries();
   draw();

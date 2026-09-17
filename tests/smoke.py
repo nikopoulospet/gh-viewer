@@ -126,9 +126,12 @@ def open_extension_page(driver, url):
     # so waiting on readyState alone returns before the extension page has even
     # begun loading. Wait for the location to actually be the target as well,
     # or the first assertions race the page and fail only on slow runners.
+    # Compared without the fragment: a page that selects a tab on load writes
+    # location.hash, which would make an exact href comparison never match.
     wait_for(
         driver,
-        f"location.href === {json.dumps(url)} && document.readyState === 'complete'",
+        f"location.href.split('#')[0] === {json.dumps(url)}"
+        " && document.readyState === 'complete'",
         f"{url} to finish loading",
     )
 
