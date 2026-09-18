@@ -46,6 +46,10 @@ which is where the side panel arrived.
 > new version, unzip it and press ↻ on the extension's card in
 > `chrome://extensions`.
 
+Other Chromium browsers work too, with one difference: **Arc has no side panel
+for extensions to use**, so there the toolbar button opens gh-viewer in a tab
+instead. Everything else behaves the same.
+
 **2. Give it access to your GitHub.** Open
 [the gh-viewer App page](https://github.com/apps/gh-viewer-sidebar/installations/new),
 press *Install*, and choose which account or organisation it may read — and within

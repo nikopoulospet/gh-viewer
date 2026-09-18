@@ -181,6 +181,20 @@ are rewritten:
 | `browser_specific_settings` | *removed* | Gecko-only, and Chrome rejects the manifest outright if it is left in |
 | `icons/icon.svg` | rasterised PNGs | Chrome refuses to load an extension whose icon is an SVG |
 
+**Not every Chromium is Chrome.** Arc ships no `chrome.sidePanel`, so reading
+`setPanelBehavior` off it is a `TypeError` that kills the service worker before
+it can register anything — the symptom is a toolbar button that does nothing at
+all. `chrome/background.js` therefore wires the button inside a `try`, and
+browsers without a side panel get the panel as an ordinary tab instead. The
+richer-looking alternative, painting a sidebar over every site from a content
+script, would need access to the whole web; that trade is not worth making for
+an extension whose only host permission is `github.com/login`.
+
+That fallback is the one piece of the port no browser in the suite can reach —
+the smoke test's Chromium *has* a side panel, and there is no headless Arc to
+drive. `tests/unit/chrome_background.test.mjs` covers it by running the worker
+against a fake `chrome` with the API withheld.
+
 Two things deliberately did *not* become build-time rewrites. Page markup and
 library code are shared verbatim: the only source difference the port needed was
 `extension/lib/compat.js`, which aliases `chrome` to `browser` and is loaded

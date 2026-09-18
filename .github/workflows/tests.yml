@@ -33,6 +33,7 @@ jobs:
           filters: |
             unit:
               - 'extension/**'
+              - 'chrome/**'
               - 'tests/**'
               - 'tools/**'
               - 'run-tests.sh'
