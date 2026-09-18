@@ -17,10 +17,14 @@ export function fixture(name) {
   return JSON.parse(fs.readFileSync(path.join(HERE, "fixtures", `${name}.json`), "utf8"));
 }
 
-export function mockBrowser(initial = {}, { tabs: openTabs = [] } = {}) {
+export function mockBrowser(initial = {}, { tabs: openTabs = [], grantHost = true } = {}) {
   const store = { ...initial };
   const changeListeners = [];
-  const calls = { tabs: [], tabQueries: [], tabUpdates: [], windowUpdates: [], options: 0, sets: [] };
+  const calls = {
+    tabs: [], tabQueries: [], tabUpdates: [], windowUpdates: [], options: 0, sets: [],
+    permissionRequests: [],
+  };
+  const origins = new Set();
 
   const api = {
     storage: {
@@ -66,6 +70,20 @@ export function mockBrowser(initial = {}, { tabs: openTabs = [] } = {}) {
         calls.windowUpdates.push({ id: windowId, ...updateInfo });
       },
     },
+    permissions: {
+      async request(request) {
+        calls.permissionRequests.push(request);
+        if (!grantHost) return false;
+        for (const origin of request.origins || []) origins.add(origin);
+        return true;
+      },
+      async contains(request) {
+        return (request.origins || []).every((origin) => origins.has(origin));
+      },
+      async getAll() {
+        return { permissions: ["storage", "tabs"], origins: [...origins] };
+      },
+    },
     runtime: {
       // Backed by the real manifest so tests see the shipped version and
       // permission list rather than a stand-in that can drift from it.
@@ -86,7 +104,13 @@ export function mockFetch(replies) {
   const queue = [...replies];
   const requests = [];
   const fn = async (url, options) => {
-    requests.push({ url, body: JSON.parse(options.body) });
+    let body = options.body;
+    try {
+      body = JSON.parse(options.body);
+    } catch {
+      body = Object.fromEntries(new URLSearchParams(options.body));
+    }
+    requests.push({ url, body });
     const reply = queue.length > 1 ? queue.shift() : queue[0];
     if (reply instanceof Error) throw reply;
     return {

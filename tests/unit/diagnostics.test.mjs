@@ -45,6 +45,10 @@ test("the report captures configuration worth debugging", async () => {
   assert.equal(report.extension.name, "gh-viewer");
   assert.ok(report.extension.version, "version helps identify the build");
   assert.ok(Array.isArray(report.extension.permissions));
+  assert.equal(report.extension.manifestVersion, 3);
+  assert.deepEqual(report.extension.hostPermissions, ["https://github.com/login/*"]);
+  assert.deepEqual(report.extension.grantedOrigins, [],
+    "nothing has been granted in this profile yet");
   assert.ok(report.app.clientId, "which App is in use");
   assert.equal(report.app.usingBuiltInClientId, true);
   assert.equal(report.storage.usingDefaultQueries, true);

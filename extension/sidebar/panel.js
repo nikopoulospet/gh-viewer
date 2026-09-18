@@ -134,13 +134,25 @@ function showConnect(message) {
   if (message) wrap.append(el("p", "error", message));
 
   const connect = el("button", "primary", "Connect");
-  connect.addEventListener("click", startDeviceFlow);
+  connect.addEventListener("click", onConnect);
   wrap.append(connect);
 
   const reset = el("button", "link", "Use a different Client ID");
   reset.addEventListener("click", () => showSetup());
   wrap.append(reset);
   show(wrap);
+}
+
+function onConnect() {
+  return GV.auth.ensureHostAccess().then((granted) => {
+    if (!granted) {
+      return showConnect(
+        "gh-viewer needs permission to reach github.com/login to sign you in. " +
+        "Press Connect again and choose Allow."
+      );
+    }
+    return startDeviceFlow();
+  });
 }
 
 async function startDeviceFlow() {

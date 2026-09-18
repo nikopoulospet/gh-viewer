@@ -6,6 +6,7 @@ globalThis.GV = globalThis.GV || {};
 
 const DEVICE_CODE_URL = "https://github.com/login/device/code";
 const TOKEN_URL = "https://github.com/login/oauth/access_token";
+const DEVICE_FLOW_ORIGIN = "https://github.com/login/*";
 
 async function postForm(url, params) {
   const res = await fetch(url, {
@@ -17,6 +18,16 @@ async function postForm(url, params) {
 }
 
 GV.auth = {
+  // Call before any `await`: awaiting first spends the gesture the prompt needs.
+  async ensureHostAccess() {
+    try {
+      return await browser.permissions.request({ origins: [DEVICE_FLOW_ORIGIN] });
+    } catch (e) {
+      console.warn("gh-viewer: permissions.request failed", e);
+      return false;
+    }
+  },
+
   // Step 1: ask GitHub for a user code to display.
   async requestDeviceCode(clientId) {
     const body = await postForm(DEVICE_CODE_URL, { client_id: clientId });

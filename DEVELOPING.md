@@ -64,6 +64,31 @@ user-to-server token in `browser.storage.local`.
 device-flow endpoints do, which is why the manifest's host permission is
 exactly `https://github.com/login/*`.
 
+Under MV3 that permission is **not granted by installing**. Firefox treats
+`host_permissions` as optional and lets the user revoke them at any time, and —
+the part that actually bites — an update that introduces a new host permission
+is not shown to the user at all. So `sidebar/panel.js` asks for it at click
+time via `GV.auth.ensureHostAccess()`, which wraps `permissions.request()`.
+Two things about that call are load-bearing:
+
+- It runs **before any `await`** in the click handler. The prompt is only
+  allowed to open while the user gesture is still live, and awaiting anything
+  first — including a `permissions.contains()` check — spends it. No check is
+  needed anyway: `request()` resolves true without prompting when the origin is
+  already held.
+- It gates the *first* request to that origin, not the whole flow. Declining
+  leaves the panel on the connect screen with an explanation rather than a
+  failed `fetch` in the console.
+
+Firefox grants host permissions at **origin** granularity, so once granted the
+pattern reads back from `permissions.getAll()` as `https://github.com/*` — the
+`/login/*` path narrows the request, not the grant. The manifest keeps the
+narrow form because that is what the install prompt and AMO review show.
+
+A **temporarily** installed add-on — `about:debugging`, and what `tests/smoke.py`
+does — has its host permissions granted for it, so you will not see the prompt
+during development. The declined path is covered in the jsdom suite instead.
+
 The manifest also asks for the `tabs` WebExtension permission, which is
 unrelated to GitHub host access: it lets the click handler in
 `sidebar/panel.js` call `browser.tabs.query()` to check whether a link is
@@ -119,8 +144,9 @@ Three layers, each catching what the one below cannot:
   drill-down, link interception, partial errors, and token rejection.
 - **`tests/smoke.py`** — installs the extension into headless Firefox and drives
   it through geckodriver's HTTP API (no selenium dependency). Proves what jsdom
-  cannot: the manifest is accepted, CSP allows the scripts, `browser.*` behaves,
-  and the CSS actually paints.
+  cannot: the MV3 manifest is accepted, CSP allows the scripts, `browser.*`
+  behaves (including `browser.action`, which replaced `browserAction`), and the
+  CSS actually paints.
 
 Two things the browser layer needs that are easy to trip over: the extension's
 internal UUID is pinned via the `extensions.webextensions.uuids` pref so its

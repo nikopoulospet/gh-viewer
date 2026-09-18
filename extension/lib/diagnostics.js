@@ -54,6 +54,16 @@ globalThis.GV = globalThis.GV || {};
     return results;
   }
 
+  async function grantedPermissions() {
+    try {
+      const all = await browser.permissions.getAll();
+      return { origins: all.origins || [], permissions: all.permissions || [] };
+    } catch (e) {
+      console.warn("gh-viewer: permissions.getAll failed", e);
+      return { origins: null, permissions: null };
+    }
+  }
+
   GV.diagnostics = {
     // `probe` runs each saved query against the API so the report shows which
     // ones actually work. It costs one rate-limit point per query.
@@ -61,13 +71,18 @@ globalThis.GV = globalThis.GV || {};
       const manifest = browser.runtime.getManifest();
       const stored = await browser.storage.local.get(null);
       const queries = await GV.store.getQueries();
+      const granted = await grantedPermissions();
 
       const report = {
         generatedAt: new Date().toISOString(),
         extension: {
           name: manifest.name,
           version: manifest.version,
+          manifestVersion: manifest.manifest_version,
           permissions: manifest.permissions || [],
+          hostPermissions: manifest.host_permissions || [],
+          grantedOrigins: granted.origins,
+          grantedPermissions: granted.permissions,
         },
         runtime: {
           userAgent: navigator.userAgent,

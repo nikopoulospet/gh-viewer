@@ -43,8 +43,10 @@ any time in GitHub's *Settings → Applications*.
 > instead. They approve it once, and it covers everyone in the org.
 
 **3. Sign in.** Open the sidebar (View → Sidebar → gh-viewer, or the toolbar
-button). Press **Connect**. GitHub shows you a short code, you approve it in the
-tab that opens, and that's it — you won't be asked again.
+button). Press **Connect**. Firefox asks whether gh-viewer may access
+`github.com` — it needs that only to exchange the sign-in code, and the answer
+is remembered. GitHub then shows you a short code, you approve it in the tab
+that opens, and that's it — you won't be asked again.
 
 ## Using it
 
@@ -155,3 +157,9 @@ the App was configured to expire tokens. Pressing Connect again fixes it.
 
 **Nothing appears after you press Connect.** The App needs Device Flow enabled;
 whoever registered it can turn that on in its settings.
+
+**Connect says it needs permission to reach github.com.** Firefox asks before
+letting gh-viewer talk to `github.com`, and the answer wasn't Allow. Press
+Connect again and allow it, or grant it from the extensions button in the
+toolbar. Nothing else in gh-viewer uses that access — listing your issues and
+PRs goes to `api.github.com`, which needs no permission at all.
