@@ -55,6 +55,9 @@ function plural(count, word) {
 function relative(iso) {
   if (!iso) return "";
   const seconds = (Date.now() - new Date(iso).getTime()) / 1000;
+  // Annotated as tuples: inferred as (string | number)[][], the comparison
+  // below would be against a string|number.
+  /** @type {[number, string][]} */
   const steps = [[31536000, "y"], [2592000, "mo"], [604800, "w"],
                  [86400, "d"], [3600, "h"], [60, "m"]];
   for (const [size, unit] of steps) {

@@ -4,8 +4,8 @@
 # either because you are already inside one (e.g. `nix develop`, or CI) or
 # because this script drops you into one itself via ad-hoc `nix shell` calls.
 #
-#   ./run-tests.sh            static + package + unit + both browser smokes
-#   ./run-tests.sh fast       everything but the browsers (~2s)
+#   ./run-tests.sh            static + types + package + unit + both browsers
+#   ./run-tests.sh fast       everything but the browsers (~5s)
 #
 # Tests never touch the GitHub API: all responses come from tests/fixtures.
 # The exception is tools/check_queries.py, which is a separate live check.
@@ -36,6 +36,21 @@ run_browser() {
   else
     $NIX shell nixpkgs#firefox nixpkgs#geckodriver -c python3 tests/smoke.py
   fi
+}
+
+# One program per page - see tsconfig.base.json for why. tsc comes from
+# tests/node_modules, the only place this repo installs node packages.
+run_types() {
+  if [ ! -x tests/node_modules/.bin/tsc ]; then
+    echo "tsc is missing - run 'cd tests && npm ci' first"
+    return 1
+  fi
+  local failed=0
+  for config in panel options workers; do
+    run_node "./tests/node_modules/.bin/tsc -p tsconfig.$config.json" || failed=1
+  done
+  [ "$failed" -eq 0 ] && echo "[ok] panel, options and workers typecheck"
+  return $failed
 }
 
 # Builds dist/chrome itself, so it needs the rasteriser as well as the browser.
@@ -75,6 +90,9 @@ run_lint | grep -E "^(errors|warnings|notices)" ; track ${PIPESTATUS[0]}
 
 step "static: script collisions"
 python3 tools/check_scripts.py; track $?
+
+step "types: JSDoc annotations (tsc --checkJs, no emit)"
+run_types; track $?
 
 step "package: the Chrome build zips and verifies"
 run_package; track $?
