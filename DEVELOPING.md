@@ -230,6 +230,14 @@ stubs `fetch`, and photographs the real UI over fabricated data — so no privat
 repository can ever appear in an image, and the shots stay honest when the UI
 changes. Both themes are captured by forcing `ui.systemUsesDarkTheme`.
 
+The images are 380x520 — a realistic sidebar width, and roughly square rather
+than the long thin strip a full-height panel produces. Note the generator sizes
+the **viewport**, not the window: Firefox enforces a minimum window width of 500
+and subtracts its own frame, so asking for a 420px window silently yields a
+244px viewport, which wraps every title onto three lines and makes the images
+twice as tall as they need to be. The frame overhead is measured and corrected
+rather than hard-coded, since it varies by version.
+
 Two ordering constraints are load-bearing, both learned the hard way. Storage is
 seeded from the options page *before* the panel opens, because writing `queries`
 while the panel is live fires `storage.onChanged` and re-boots it mid-capture.

@@ -21,13 +21,19 @@ sys.path.insert(0, str(ROOT / "tests"))
 from smoke import WebDriver, free_port, open_extension_page, wait_for, BASE, EXTENSION, EXT_ID, EXT_UUID  # noqa: E402
 
 OUT = ROOT / "screenshots"
-WIDTH, HEIGHT = 420, 900
+# Target VIEWPORT size, not window size. Firefox enforces a minimum window width
+# of 500 and subtracts its own frame, so asking for a 420px window yielded a
+# 244px viewport - far narrower than a real sidebar, which wrapped every title
+# onto three lines and made the images needlessly tall.
+WIDTH = 380
+LIST_HEIGHT = 520
+DETAIL_HEIGHT = 520
 
 REPO_A, REPO_B = "acme-corp/atlas", "acme-corp/beacon"
 
 LIST = {"data": {"rateLimit": {"remaining": 4983}, "search": {"issueCount": 6, "nodes": [
   {"__typename": "PullRequest", "id": "PR_1", "number": 812,
-   "title": "Retry flaky uploads instead of failing the whole batch",
+   "title": "Retry flaky uploads instead of failing the batch",
    "url": f"https://github.com/{REPO_A}/pull/812", "isDraft": False, "state": "OPEN",
    "updatedAt": "2026-09-17T09:40:00Z", "reviewDecision": "APPROVED",
    "author": {"login": "rmeyer"}, "repository": {"nameWithOwner": REPO_A},
@@ -74,12 +80,11 @@ LIST = {"data": {"rateLimit": {"remaining": 4983}, "search": {"issueCount": 6, "
 
 DETAIL = {"data": {"node": {
   "__typename": "PullRequest", "number": 812,
-  "title": "Retry flaky uploads instead of failing the whole batch",
+  "title": "Retry flaky uploads instead of failing the batch",
   "url": f"https://github.com/{REPO_A}/pull/812",
   "bodyHTML": "<p>Uploads that time out now <strong>retry twice</strong> with backoff "
-              "before the batch is failed.</p><h2>Notes</h2><ul>"
-              "<li>Backoff is <code>2s, 8s</code>.</li>"
-              "<li>Closes <a href=\"/acme-corp/atlas/issues/798\">#798</a>.</li></ul>"
+              "before the batch is failed. Closes "
+              "<a href=\"/acme-corp/atlas/issues/798\">#798</a>.</p>"
               "<pre><code>retries: 2\nbackoff: exponential\n</code></pre>",
   "state": "OPEN", "isDraft": False, "merged": False,
   "updatedAt": "2026-09-17T09:40:00Z", "createdAt": "2026-09-14T09:00:00Z",
@@ -89,8 +94,7 @@ DETAIL = {"data": {"node": {
                        {"name": "storage", "color": "0e8a16"}]},
   "assignees": {"nodes": [{"login": "you"}]},
   "reviews": {"nodes": [
-    {"author": {"login": "dlin"}, "state": "APPROVED", "submittedAt": "2026-09-17T09:10:00Z"},
-    {"author": {"login": "pnorth"}, "state": "APPROVED", "submittedAt": "2026-09-16T16:40:00Z"}]},
+    {"author": {"login": "dlin"}, "state": "APPROVED", "submittedAt": "2026-09-17T09:10:00Z"}]},
   "comments": {"nodes": [
     {"author": {"login": "dlin"}, "createdAt": "2026-09-17T09:05:00Z",
      "bodyHTML": "<p>Does this cover the multipart path too?</p>",
@@ -100,8 +104,6 @@ DETAIL = {"data": {"node": {
      "detailsUrl": f"https://github.com/{REPO_A}/runs/5"},
     {"__typename": "CheckRun", "name": "unit", "conclusion": "SUCCESS",
      "detailsUrl": f"https://github.com/{REPO_A}/runs/1"},
-    {"__typename": "CheckRun", "name": "lint", "conclusion": "SUCCESS",
-     "detailsUrl": f"https://github.com/{REPO_A}/runs/2"},
     {"__typename": "StatusContext", "context": "coverage/project", "state": "SUCCESS",
      "targetUrl": "https://coverage.example/1"}]}},
 }}}
@@ -168,8 +170,24 @@ def capture(dark):
         }}}
         driver.session = driver.call("POST", "/session", caps)["sessionId"]
         driver.install(EXTENSION)
-        driver.call("POST", driver.s("/window/rect"),
-                    {"width": WIDTH, "height": HEIGHT, "x": 0, "y": 0})
+        pad = [300, 120]  # first guess at the window frame overhead
+
+        def size(height):
+            """Set the window so the VIEWPORT ends up WIDTH x height.
+
+            The frame overhead is not fixed across Firefox versions, so measure
+            it and correct rather than hard-coding an offset.
+            """
+            for _ in range(3):
+                driver.call("POST", driver.s("/window/rect"),
+                            {"width": WIDTH + pad[0], "height": height + pad[1], "x": 0, "y": 0})
+                inner = driver.script("return [window.innerWidth, window.innerHeight];")
+                if inner == [WIDTH, height]:
+                    return
+                pad[0] += WIDTH - inner[0]
+                pad[1] += height - inner[1]
+
+        size(LIST_HEIGHT)
 
         # The options page has the same browser.* access and is not the page
         # being photographed, so seeding from there disturbs nothing.
@@ -180,6 +198,8 @@ def capture(dark):
         driver.script(STUB, [LIST, DETAIL])
         wait_for(driver, "document.querySelectorAll('.row').length >= 6", "the list")
         time.sleep(0.4)
+        print(f"    list content height: "
+              f"{driver.script('return document.documentElement.scrollHeight;')}px")
         shoot(driver, f"01-list-{theme}.png")
 
         # The click can land before the panel has finished wiring up, which
