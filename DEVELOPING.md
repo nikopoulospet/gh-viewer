@@ -97,6 +97,23 @@ duplicate. It grants read access to the URLs of every open tab, which is why
 it's called out in the README rather than left as an unexplained manifest
 entry.
 
+## Telling "not installed" apart from "installed elsewhere"
+
+A GitHub App is installed on an **account**, not on a user, and only account
+admins can see an App's installation page. So a member of an org somebody else
+set up has no way to tell an App that is missing from their org from one that is
+installed but scoped to other repositories — from the sidebar both are an empty
+list, and the two have completely different fixes.
+
+`lib/access.js` answers it from the user's own token, via two REST endpoints
+GraphQL does not expose: `/user/installations`, then
+`/user/installations/{id}/repositories` for each. The Access tab in the options
+page renders that.
+
+It is **not** folded into the diagnostics report. That report is built to be
+pasted into an issue, and a list of private repository names is exactly the kind
+of thing that should not travel with it by default.
+
 ## Why not iframe github.com in the sidebar
 
 GitHub sends `X-Frame-Options: deny` and CSP `frame-ancestors 'none'` to prevent
@@ -368,6 +385,7 @@ extension/
   lib/auth.js       device flow
   lib/api.js        GraphQL client, partial-error aware
   lib/render.js     list rows, the drill-down view, and its detail query
+  lib/access.js     which installations and repositories the App can read
   lib/compat.js     aliases `chrome` to `browser`; a no-op in Firefox
   sidebar/          the panel
   options/          query editor

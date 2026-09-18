@@ -125,12 +125,6 @@ function showConnect(message) {
     "GitHub will show a one-time code to approve in a browser tab. " +
     "gh-viewer stores only the resulting read-only token."));
 
-  const install = el("p", "muted");
-  install.append(document.createTextNode("Seeing nothing after you connect? The App also has to be "));
-  const installLink = el("a", null, "installed on the account or org");
-  installLink.href = GV.INSTALL_URL;
-  install.append(installLink, document.createTextNode(" that owns the repos."));
-  wrap.append(install);
   if (message) wrap.append(el("p", "error", message));
 
   const connect = el("button", "primary", "Connect");

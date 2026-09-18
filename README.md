@@ -168,7 +168,9 @@ Either way this is for development rather than daily use — see
 
 **The list is empty but GitHub's website isn't.** The App probably isn't
 installed on the organisation that owns those repos, or is installed but only
-on a few repositories. Check *Settings → Applications → gh-viewer*.
+on a few repositories. Open **⚙ → Access → Check access** to see exactly which
+accounts and repositories gh-viewer can read for you; the two cases look
+identical from the sidebar but are different problems with different fixes.
 
 **The status bar says "partial".** A field couldn't be read — usually a
 permission the App wasn't granted. The rest of the results are still accurate.

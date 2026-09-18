@@ -192,6 +192,94 @@ for (const tab of tabs) {
   tab.addEventListener("click", () => selectTab(tab.dataset.tab));
 }
 
+// --- access ---------------------------------------------------------------
+
+const accessBox = document.getElementById("access");
+const accessStatus = document.getElementById("access-status");
+
+function sayAccess(text, tone) {
+  accessStatus.textContent = text;
+  accessStatus.className = tone || "muted";
+}
+
+// Nothing from GitHub is inserted as HTML - repository and account names are
+// untrusted input like any other.
+function accessCard(entry) {
+  const wrap = document.createElement("div");
+  wrap.className = "access-card";
+
+  const head = document.createElement("h3");
+  head.textContent = entry.account;
+  if (entry.type) {
+    const kind = document.createElement("span");
+    kind.className = "chip";
+    kind.textContent = entry.type === "Organization" ? "org" : "personal";
+    head.append(" ", kind);
+  }
+  wrap.append(head);
+
+  if (entry.error) {
+    const failed = document.createElement("p");
+    failed.className = "bad";
+    failed.textContent = `could not list repositories: ${entry.error}`;
+    wrap.append(failed);
+    return wrap;
+  }
+
+  const summary = document.createElement("p");
+  summary.className = "muted";
+  const count = entry.repositories.length;
+  summary.textContent = entry.everyRepository
+    ? `All repositories (${count}), including any created later.`
+    : `${count} selected repositor${count === 1 ? "y" : "ies"}.`;
+  wrap.append(summary);
+
+  const list = document.createElement("ul");
+  list.className = "repo-list";
+  for (const repo of entry.repositories) {
+    const item = document.createElement("li");
+    item.textContent = repo.name;
+    if (repo.private) {
+      const tag = document.createElement("span");
+      tag.className = "chip";
+      tag.textContent = "private";
+      item.append(" ", tag);
+    }
+    list.append(item);
+  }
+  wrap.append(list);
+
+  if (entry.truncated) {
+    const more = document.createElement("p");
+    more.className = "muted";
+    more.textContent = "…and more; the list was cut off.";
+    wrap.append(more);
+  }
+  return wrap;
+}
+
+document.getElementById("check-access").addEventListener("click", async () => {
+  sayAccess("asking GitHub…");
+  accessBox.replaceChildren();
+  try {
+    const entries = await GV.access.list();
+    if (!entries.length) {
+      // Not an error, and not "nothing works": public repositories and your own
+      // are readable without any installation. What is missing is organisations.
+      sayAccess("Not installed on any organisation yet. Public repositories and "
+                + "your own still work; an organisation's private ones need the "
+                + "step below.");
+      return;
+    }
+    accessBox.replaceChildren(...entries.map(accessCard));
+    const repos = entries.reduce((n, e) => n + e.repositories.length, 0);
+    sayAccess(`${entries.length} installation${entries.length === 1 ? "" : "s"}, `
+              + `${repos} repositor${repos === 1 ? "y" : "ies"}.`, "ok");
+  } catch (e) {
+    sayAccess(`could not check access: ${e.message}`, "bad");
+  }
+});
+
 // --- diagnostics ---------------------------------------------------------
 
 const reportBox = document.getElementById("report");
@@ -236,6 +324,7 @@ document.getElementById("copy").addEventListener("click", async () => {
   const requested = location.hash.replace("#", "");
   selectTab(panels.has(requested) ? requested : "queries");
 
+  document.getElementById("install-link").href = GV.INSTALL_URL;
   clientInput.value = await GV.store.getClientId();
   queries = await GV.store.getQueries();
   draw();

@@ -12,6 +12,7 @@
     <nav class="tabs" id="tabs">
       <button type="button" class="tab" data-tab="queries">Queries</button>
       <button type="button" class="tab" data-tab="connection">Connection</button>
+      <button type="button" class="tab" data-tab="access">Access</button>
       <button type="button" class="tab" data-tab="diagnostics">Diagnostics</button>
     </nav>
 
@@ -51,6 +52,59 @@
       <button id="sign-out">Sign out</button>
     </section>
 
+    <section id="tab-access" class="tab-panel" hidden>
+      <h2>What gh-viewer can read</h2>
+      <p class="muted">
+        <b>Your own work always shows up.</b> Once you are signed in, issues and
+        pull requests in public repositories and in repositories you own need
+        nothing further — no install, and nobody else's approval.
+      </p>
+      <p class="muted">
+        An organisation's private repositories are the part that needs more.
+        gh-viewer reads them through a GitHub App, which sees an organisation
+        only where it has been installed — and <b>that is configured once for
+        the whole organisation</b>, by someone who administers it, covering
+        everyone in it afterwards.
+      </p>
+      <div class="actions">
+        <button id="check-access" class="primary">Check access</button>
+      </div>
+      <p id="access-status" class="muted"></p>
+      <div id="access"></div>
+
+      <h2>Adding an organisation</h2>
+      <p class="muted">
+        Only needed to reach an organisation's <i>private</i> repositories, and
+        only if that organisation is missing from the list above — which means
+        the App is not installed on it yet. This is a one-time step for the
+        whole organisation, not something each person repeats.
+      </p>
+      <ol class="muted">
+        <li>
+          Open <a id="install-link" target="_blank" rel="noreferrer">the
+          gh-viewer install page</a> on GitHub.
+        </li>
+        <li>
+          Pick the organisation, then choose all repositories or a hand-picked
+          few. <b>If you administer it</b>, that installs it for everyone.
+          <b>If you do not</b>, GitHub turns it into a request for an owner to
+          approve — once, for the whole organisation.
+        </li>
+        <li>Come back here and press <i>Check access</i> to confirm.</li>
+      </ol>
+      <p class="muted">
+        GitHub documents this flow in
+        <a href="https://docs.github.com/en/apps/using-github-apps/installing-a-github-app-from-a-third-party#installing-a-github-app"
+           target="_blank" rel="noreferrer">Installing a GitHub App from a third
+          party</a>.
+      </p>
+      <p class="muted">
+        Already installed but still missing a repository? Then the installation
+        is scoped to a few repositories rather than all of them, and an owner
+        needs to add yours — the same page, under <i>Repository access</i>.
+      </p>
+    </section>
+
     <section id="tab-diagnostics" class="tab-panel" hidden>
       <h2>Export state</h2>
       <p class="muted">
@@ -87,6 +141,7 @@
     <script src="../lib/compat.js"></script>
     <script src="../lib/store.js"></script>
     <script src="../lib/api.js"></script>
+    <script src="../lib/access.js"></script>
     <script src="../lib/diagnostics.js"></script>
     <script src="options.js"></script>
   </body>

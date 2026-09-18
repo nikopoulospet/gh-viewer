@@ -4,6 +4,7 @@
 globalThis.GV = globalThis.GV || {};
 
 const ENDPOINT = "https://api.github.com/graphql";
+const REST_ROOT = "https://api.github.com";
 
 GV.api = {
   async graphql(document, variables, token) {
@@ -32,6 +33,28 @@ GV.api = {
     // back null with an entry in `errors`, while the rest of the data is fine.
     // Callers render `data` and surface `errors` as a warning.
     return { data: body.data, errors: body.errors || null };
+  },
+
+  // A couple of things the GraphQL API cannot answer: which installations of
+  // the App this user can reach, and which repositories each one covers. Those
+  // live only in REST.
+  async rest(path, token) {
+    token = token || (await GV.store.getToken());
+    if (!token) throw new GV.AuthError("not connected");
+
+    const res = await fetch(`${REST_ROOT}${path}`, {
+      headers: {
+        Authorization: `bearer ${token}`,
+        Accept: "application/vnd.github+json",
+      },
+    });
+
+    if (res.status === 401) {
+      await GV.store.clearToken();
+      throw new GV.AuthError("GitHub rejected the token - reconnect");
+    }
+    if (!res.ok) throw new Error(`GitHub returned HTTP ${res.status}`);
+    return res.json();
   },
 
   async whoAmI(token) {
