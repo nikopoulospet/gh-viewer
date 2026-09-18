@@ -219,6 +219,29 @@ rejects a version it has already seen.
 web-ext build --source-dir=extension   # produce an unsigned zip to inspect
 ```
 
+### Chrome
+
+Chrome has no counterpart to AMO's unlisted channel. It refuses to install an
+extension from anywhere but its own Web Store — a self-hosted `.crx` plus an
+update URL only works through enterprise policy, which every recipient would
+have to set themselves. So there is nothing to sign, and the distributable is a
+plain zip that people load unpacked with Developer mode on.
+
+```bash
+python3 tools/build_chrome.py --zip    # dist/gh-viewer-chrome-<version>.zip
+```
+
+Two properties worth keeping. The archive is **reproducible** — entries sorted,
+timestamps pinned to the start of the zip epoch — so the same commit packages to
+a byte-identical file and anyone can check a release against their own build.
+And everything sits under **one top-level folder** rather than at the zip root,
+so unzipping yields a single directory to point *Load unpacked* at instead of
+scattering the extension across the user's Downloads. The packaging step re-opens
+what it wrote and fails if a required file or the expected version is missing.
+
+Should this ever move to the Web Store, the listing wants the manifest at the
+zip *root*, so the wrapping folder would have to go.
+
 ### Cutting a release
 
 Releases are driven by the version in `extension/manifest.json`, never by a tag
@@ -229,9 +252,15 @@ typed by hand. To release:
 
 That is the whole ritual. `.github/workflows/release.yml` runs on every push to
 `main`; it compares the manifest version against existing tags and does nothing
-unless the version is new. When it is new, it runs the full suite (smoke test
-included), signs with AMO on the unlisted channel, tags `v<version>`, and
-publishes a GitHub Release with the signed `.xpi` attached.
+unless the version is new. When it is new, it runs the full suite (both smoke
+tests included), packages the Chrome zip, signs with AMO on the unlisted
+channel, tags `v<version>`, and publishes a GitHub Release with the signed
+`.xpi` and the Chrome zip attached. Both browsers ship from one version bump;
+there is no separate Chrome release to remember.
+
+The Chrome zip is built *before* the AMO signing step on purpose. Packaging is
+cheap and fails loudly if the build dropped a file, and a failure there costs
+nothing — whereas one after signing costs a version bump.
 
 Two secrets are required: `AMO_JWT_ISSUER` and `AMO_JWT_SECRET`, from
 <https://addons.mozilla.org/developers/addon/api/key/>. The workflow checks they
