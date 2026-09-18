@@ -18,6 +18,7 @@ jobs:
     outputs:
       unit: ${{ steps.filter.outputs.unit }}
       smoke: ${{ steps.filter.outputs.smoke }}
+      chrome: ${{ steps.filter.outputs.chrome }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -34,26 +35,34 @@ jobs:
               - 'extension/**'
               - 'tests/**'
               - 'tools/**'
+              - 'run-tests.sh'
               - '.github/workflows/tests.yml'
             smoke:
+              - 'extension/**'
+              - 'tests/**'
+              - 'flake.nix'
+              - 'flake.lock'
+              - '.github/workflows/tests.yml'
+            chrome:
               - 'extension/**'
               - 'chrome/**'
               - 'tests/**'
               - 'tools/build_chrome.py'
               - 'flake.nix'
               - 'flake.lock'
-              - 'run-tests.sh'
               - '.github/workflows/tests.yml'
 
       - name: Report what will run
         run: |
-          echo "unit tests:   ${{ steps.filter.outputs.unit }}"
-          echo "smoke tests:  ${{ steps.filter.outputs.smoke }}"
+          echo "unit tests:    ${{ steps.filter.outputs.unit }}"
+          echo "firefox smoke: ${{ steps.filter.outputs.smoke }}"
+          echo "chrome smoke:  ${{ steps.filter.outputs.chrome }}"
           {
             echo "| suite | runs |"
             echo "| --- | --- |"
             echo "| Static checks + unit tests | ${{ steps.filter.outputs.unit }} |"
-            echo "| Browser smoke tests | ${{ steps.filter.outputs.smoke }} |"
+            echo "| Firefox smoke tests | ${{ steps.filter.outputs.smoke }} |"
+            echo "| Chrome smoke tests | ${{ steps.filter.outputs.chrome }} |"
           } >> "$GITHUB_STEP_SUMMARY"
 
   # Fast logic layer: static script-collision check + jsdom unit tests. Kept
@@ -78,7 +87,7 @@ jobs:
   # headless, so no display server is needed, but browser startup and WebDriver
   # round-trips make this the slow job.
   smoke:
-    name: Browser smoke tests
+    name: Firefox smoke tests
     needs: changes
     if: needs.changes.outputs.smoke == 'true'
     runs-on: ubuntu-latest
@@ -90,13 +99,30 @@ jobs:
         timeout-minutes: 15
         run: nix develop -c python3 tests/smoke.py
 
+  # The same checks against the Chrome build. A sibling job rather than another
+  # step of `smoke`, so a Firefox-only regression cannot hide behind a Chrome
+  # failure (or the other way round) and the two run in parallel.
+  smoke-chrome:
+    name: Chrome smoke tests
+    needs: changes
+    if: needs.changes.outputs.chrome == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: DeterminateSystems/nix-installer-action@main
+
+      # Builds dist/chrome first; nothing generated is committed.
+      - name: Headless Chrome smoke test
+        timeout-minutes: 15
+        run: nix develop -c python3 tests/smoke_chrome.py
+
   # The single REQUIRED check. Everything above is optional and may be skipped;
   # this always runs and reports, so branch protection has one status that is
   # guaranteed to arrive. A skipped dependency is a pass - it means the gate
   # decided there was nothing to test - while a failed one fails the gate.
   gate:
     name: CI
-    needs: [changes, tests, smoke]
+    needs: [changes, tests, smoke, smoke-chrome]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -105,9 +131,11 @@ jobs:
           CHANGES="${{ needs.changes.result }}"
           TESTS="${{ needs.tests.result }}"
           SMOKE="${{ needs.smoke.result }}"
+          CHROME="${{ needs.smoke-chrome.result }}"
           echo "changes: $CHANGES"
           echo "tests:   $TESTS"
           echo "smoke:   $SMOKE"
+          echo "chrome:  $CHROME"
 
           # The filter itself failing is not a pass: it would silently skip
           # everything downstream.
@@ -117,7 +145,7 @@ jobs:
           fi
 
           FAILED=0
-          for result in "$TESTS" "$SMOKE"; do
+          for result in "$TESTS" "$SMOKE" "$CHROME"; do
             case "$result" in
               success|skipped) ;;
               *) FAILED=1 ;;
@@ -125,8 +153,8 @@ jobs:
           done
 
           if [ "$FAILED" = 1 ]; then
-            echo "::error::a test job did not pass (tests=$TESTS smoke=$SMOKE)"
-            echo "**CI failed** - tests: \`$TESTS\`, smoke: \`$SMOKE\`" >> "$GITHUB_STEP_SUMMARY"
+            echo "::error::a test job did not pass (tests=$TESTS smoke=$SMOKE chrome=$CHROME)"
+            echo "**CI failed** - tests: \`$TESTS\`, firefox: \`$SMOKE\`, chrome: \`$CHROME\`" >> "$GITHUB_STEP_SUMMARY"
             exit 1
           fi
 

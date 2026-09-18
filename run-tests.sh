@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # Runs every layer of the test suite. Tools (node, python3, firefox,
-# geckodriver) come from the repo's flake dev shell, either because you are
-# already inside one (e.g. `nix develop`, or CI) or because this script drops
-# you into one itself via ad-hoc `nix shell` calls.
+# geckodriver, chromium, chromedriver) come from the repo's flake dev shell,
+# either because you are already inside one (e.g. `nix develop`, or CI) or
+# because this script drops you into one itself via ad-hoc `nix shell` calls.
 #
-#   ./run-tests.sh            static + unit + browser smoke
+#   ./run-tests.sh            static + unit + both browser smokes
 #   ./run-tests.sh fast       static + unit only (no browser, ~1s)
 #
 # Tests never touch the GitHub API: all responses come from tests/fixtures.
@@ -38,6 +38,17 @@ run_browser() {
   fi
 }
 
+# Builds dist/chrome itself, so it needs the rasteriser as well as the browser.
+run_chrome() {
+  if command -v chromium >/dev/null 2>&1 && command -v chromedriver >/dev/null 2>&1 \
+     && command -v rsvg-convert >/dev/null 2>&1; then
+    python3 tests/smoke_chrome.py
+  else
+    $NIX shell nixpkgs#chromium nixpkgs#chromedriver nixpkgs#librsvg \
+      -c python3 tests/smoke_chrome.py
+  fi
+}
+
 run_lint() {
   if command -v web-ext >/dev/null 2>&1; then
     web-ext lint --source-dir=extension --output=text
@@ -60,6 +71,9 @@ run_node 'cd tests && node --test "unit/*.test.mjs"'; track $?
 if [ "${1:-}" != "fast" ]; then
   step "smoke: real headless Firefox"
   run_browser; track $?
+
+  step "smoke: real headless Chrome"
+  run_chrome; track $?
 fi
 
 printf '\n'
