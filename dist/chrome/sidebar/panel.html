@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>gh-viewer</title>
+    <link rel="stylesheet" href="panel.css" />
+  </head>
+  <body>
+    <header class="bar">
+      <button id="back" class="icon" type="button" title="Back" hidden>&#8592;</button>
+      <select id="query-select" title="Saved query"></select>
+      <button id="refresh" class="icon" type="button" title="Refresh">&#8635;</button>
+      <button id="settings" class="icon" type="button" title="Queries &amp; settings">&#9881;</button>
+    </header>
+    <main id="view"></main>
+    <footer id="status"></footer>
+    <script src="../lib/compat.js"></script>
+    <script src="../lib/store.js"></script>
+    <script src="../lib/auth.js"></script>
+    <script src="../lib/api.js"></script>
+    <script src="../lib/sanitize.js"></script>
+    <script src="../lib/render.js"></script>
+    <script src="panel.js"></script>
+  </body>
+</html>
