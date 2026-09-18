@@ -27,9 +27,9 @@ sprint backlog, and check for mentions all without switching tabs.
 
 ## Install
 
-**1. Add it to your browser.**
+**1. Add to your browser.**
 
-*Firefox* — download the latest `.xpi` from the
+*Firefox* - download the latest `.xpi` from the
 [releases page](https://github.com/nikopoulospet/gh-viewer/releases/latest),
 then in Firefox open `about:addons`, click the gear icon, and choose
 **Install Add-on From File…** — or simply drag the downloaded file onto a
@@ -41,25 +41,21 @@ unzip it. Open `chrome://extensions`, turn on **Developer mode** (top right),
 click **Load unpacked** and pick the unzipped folder. Needs Chrome 114 or newer,
 which is where the side panel arrived.
 
-> Chrome only installs extensions from its Web Store, and gh-viewer isn't listed
-> there, so this route needs Developer mode and won't auto-update. To move to a
-> new version, unzip it and press ↻ on the extension's card in
-> `chrome://extensions`.
+**2. Sign in to Github.** 
 
-**2. Give it access to your GitHub.** Open
-[the gh-viewer App page](https://github.com/apps/gh-viewer-sidebar/installations/new),
-press *Install*, and choose which account or organisation it may read — and within
-that, all repositories or a hand-picked few. You can change or revoke this at
-any time in GitHub's *Settings → Applications*.
+Open the panel and press **Connect**. The browser asks whether
+gh-viewer may access `github.com`. 
 
-> Installing on an organisation you don't own sends a request to an owner
-> instead. They approve it once, and it covers everyone in the org.
+**3. Optionally: add an organization.**
 
-**3. Sign in.** Open the panel — in Firefox, View → Sidebar → gh-viewer; in
-Chrome, the toolbar button — and press **Connect**. The browser asks whether
-gh-viewer may access `github.com` — it needs that only to exchange the sign-in
-code, and the answer is remembered. GitHub then shows you a short code, you
-approve it in the tab that opens, and that's it — you won't be asked again.
+If a repository you expected isn't there, the App hasn't been installed on the organization that
+owns it. **Installation is configured once for the whole organization** not per user. You may need 
+to talk to you admin to get approval. 
+
+[Install `gh-viewer` or request installation in your org
+](https://github.com/apps/gh-viewer-sidebar/installations/)
+
+[Official documentation for installing a GitHub App from a third party](https://docs.github.com/en/apps/using-github-apps/installing-a-github-app-from-a-third-party#installing-a-github-app).
 
 ## Using it
 
