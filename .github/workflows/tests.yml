@@ -5,23 +5,79 @@ on:
     branches: [main]
   pull_request:
 
+# A new push supersedes the run in progress for the same branch; there is no
+# value in finishing tests for a commit nobody will look at again.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
+  # Both checks below are REQUIRED by branch protection, which is why this is a
+  # gate rather than a `paths:` filter on the workflow. A skipped job never
+  # reports a result, and branch protection waits for it forever - so a docs-only
+  # PR would become unmergeable. Instead the jobs always run and always report;
+  # they just do nothing expensive when nothing testable changed.
+  changes:
+    name: Does anything testable change?
+    runs-on: ubuntu-latest
+    outputs:
+      relevant: ${{ steps.filter.outputs.relevant }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - id: filter
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            git fetch -q origin "${{ github.base_ref }}"
+            FILES="$(git diff --name-only "origin/${{ github.base_ref }}...HEAD")"
+          else
+            BEFORE="${{ github.event.before }}"
+            if [ -z "$BEFORE" ] || [ "$BEFORE" = "0000000000000000000000000000000000000000" ]; then
+              FILES=""   # new branch or forced push: no reliable base, so run everything
+              echo "no comparable base commit - running the full suite"
+              echo "relevant=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            FILES="$(git diff --name-only "$BEFORE" HEAD)"
+          fi
+
+          echo "changed files:"
+          echo "$FILES" | sed 's/^/  /'
+
+          # Code, tests, and the infrastructure that runs them. Everything else -
+          # README, DEVELOPING, docs/, screenshots/, LICENSE - cannot break a test.
+          if echo "$FILES" | grep -qE '^(extension/|chrome/|tests/|tools/|\.github/workflows/|flake\.(nix|lock)$|run-tests\.sh$)'; then
+            echo "relevant=true" >> "$GITHUB_OUTPUT"
+            echo "**Testable changes found — running the suite.**" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "relevant=false" >> "$GITHUB_OUTPUT"
+            echo "**No code, test or infrastructure changes — suite skipped.**" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
   # Fast logic layer: static script-collision check + jsdom unit tests.
   # Kept separate from `smoke` so a slow/flaky browser run can never mask a
   # fast, deterministic logic failure (or delay reporting one).
   tests:
     name: Static checks + unit tests
+    needs: changes
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        if: needs.changes.outputs.relevant == 'true'
 
       - uses: DeterminateSystems/nix-installer-action@main
+        if: needs.changes.outputs.relevant == 'true'
       - uses: DeterminateSystems/magic-nix-cache-action@main
+        if: needs.changes.outputs.relevant == 'true'
 
       - name: npm ci (tests/)
+        if: needs.changes.outputs.relevant == 'true'
         run: nix develop -c bash -c 'cd tests && npm ci'
 
       - name: static check + unit tests
+        if: needs.changes.outputs.relevant == 'true'
         run: nix develop -c ./run-tests.sh fast
 
   # Slow layer: installs the extension into real headless Firefox via
@@ -29,13 +85,18 @@ jobs:
   # browser startup + WebDriver round-trips make this the slow job.
   smoke:
     name: Browser smoke test (headless Firefox)
+    needs: changes
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        if: needs.changes.outputs.relevant == 'true'
 
       - uses: DeterminateSystems/nix-installer-action@main
+        if: needs.changes.outputs.relevant == 'true'
       - uses: DeterminateSystems/magic-nix-cache-action@main
+        if: needs.changes.outputs.relevant == 'true'
 
       - name: headless Firefox smoke test
+        if: needs.changes.outputs.relevant == 'true'
         timeout-minutes: 15
         run: nix develop -c python3 tests/smoke.py
