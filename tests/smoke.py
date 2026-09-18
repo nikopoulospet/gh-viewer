@@ -163,6 +163,25 @@ def _(d):
     assert missing == [], f"missing from GV: {missing}"
 
 
+@check("the manifest is accepted as MV3 and the action API exists")
+def _(d):
+    version = d.script("return browser.runtime.getManifest().manifest_version;")
+    assert version == 3, f"expected an MV3 manifest, got {version}"
+    ok = d.script("return typeof browser.action?.onClicked?.addListener === 'function';")
+    assert ok, "browser.action is not available"
+
+
+@check("the host permission is declared and visible to permissions.getAll")
+def _(d):
+    declared = d.script(
+        "return browser.runtime.getManifest().host_permissions;")
+    assert declared == ["https://github.com/login/*"], f"declared: {declared!r}"
+    # Granted at origin granularity, so the /login/* path reads back as the host.
+    origins = d.script("return browser.permissions.getAll().then(p => p.origins);")
+    assert any(o.startswith("https://github.com/") for o in origins), \
+        f"getAll returned {origins!r}"
+
+
 @check("the connect screen renders when signed out")
 def _(d):
     wait_for(d, "document.body.textContent.includes('Sign in to GitHub')",

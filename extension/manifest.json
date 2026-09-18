@@ -1,5 +1,5 @@
 {
-  "manifest_version": 2,
+  "manifest_version": 3,
   "name": "gh-viewer",
   "version": "0.1.0",
   "description": "Saved GraphQL views of your GitHub issues, PRs and discussions, in the Firefox sidebar. Read-only.",
@@ -19,7 +19,9 @@
   },
   "permissions": [
     "storage",
-    "tabs",
+    "tabs"
+  ],
+  "host_permissions": [
     "https://github.com/login/*"
   ],
   "background": {
@@ -33,7 +35,7 @@
     "default_icon": "icons/icon.svg",
     "open_at_install": true
   },
-  "browser_action": {
+  "action": {
     "default_title": "Toggle the gh-viewer sidebar",
     "default_icon": "icons/icon.svg"
   },

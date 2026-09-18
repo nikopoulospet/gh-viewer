@@ -8,6 +8,13 @@ function text(dom, selector) {
   return [...dom.window.document.querySelectorAll(selector)].map((n) => n.textContent);
 }
 
+function clickConnect(dom) {
+  const button = [...dom.window.document.querySelectorAll("button")]
+    .find((b) => b.textContent === "Connect");
+  assert.ok(button, "the connect screen should offer a Connect button");
+  button.dispatchEvent(new dom.window.MouseEvent("click", { bubbles: true }));
+}
+
 test("every panel script evaluates in one shared scope", async () => {
   // Regression: each lib file used to declare `const GV` at top level, which is
   // a redeclaration SyntaxError that silently killed every script after the
@@ -24,6 +31,51 @@ test("without a token the panel asks you to connect", async () => {
   await settle();
   assert.match(dom.window.document.body.textContent, /Sign in to GitHub/);
   assert.match(dom.window.document.body.textContent, /installed on the account or org/);
+});
+
+test("connecting asks for the github.com/login host permission first", async () => {
+  const browser = mockBrowser();
+  const fetch = mockFetch([
+    // Fractional `interval` only to keep the poll's sleep (x1000) to a millisecond.
+    { body: { device_code: "dc", user_code: "ABCD-1234", interval: 0.001, expires_in: 900,
+              verification_uri: "https://github.com/login/device" } },
+    { body: { access_token: "ghu_granted" } },
+    { body: { data: { viewer: { login: "octocat" } } } },
+    fixture("search"),
+  ]);
+  const dom = await loadPage("sidebar/panel.html", { browser, fetch });
+  await settle();
+
+  clickConnect(dom);
+  await settle(50);
+
+  assert.equal(browser.calls.permissionRequests.length, 1);
+  // Spread because the array comes from the page's realm: deep-equal checks prototypes.
+  assert.deepEqual(
+    [...browser.calls.permissionRequests[0].origins],
+    ["https://github.com/login/*"]
+  );
+  assert.equal(fetch.requests[0].url, "https://github.com/login/device/code",
+    "the permission must be held before the first request to that origin");
+  assert.equal(
+    await browser.api.storage.local.get("token").then((r) => r.token),
+    "ghu_granted",
+    "granting should carry straight on through the device flow"
+  );
+});
+
+test("refusing the host permission explains it instead of failing silently", async () => {
+  const browser = mockBrowser({}, { grantHost: false });
+  const fetch = mockFetch([{ body: {} }]);
+  const dom = await loadPage("sidebar/panel.html", { browser, fetch });
+  await settle();
+
+  clickConnect(dom);
+  await settle();
+
+  assert.equal(fetch.requests.length, 0, "no request may go out without the permission");
+  assert.match(dom.window.document.body.textContent, /needs permission to reach github\.com\/login/);
+  assert.match(dom.window.document.body.textContent, /Press Connect again/);
 });
 
 test("a search response renders one row per result", async () => {
