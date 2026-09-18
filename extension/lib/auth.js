@@ -47,6 +47,11 @@ GV.auth = {
   // means the App has token expiration switched on, which this extension cannot
   // recover from (refreshing needs a client secret). The panel warns about it
   // at connect time rather than letting it fail silently hours later.
+  /**
+   * @param {string} clientId
+   * @param {{ interval?: number, expires_in?: number, device_code: string }} device
+   * @param {{ signal?: AbortSignal, onWait?: (secondsLeft: number) => void }} [options]
+   */
   async pollForToken(clientId, device, { signal, onWait } = {}) {
     let interval = (device.interval || 5) * 1000;
     const deadline = Date.now() + (device.expires_in || 900) * 1000;
