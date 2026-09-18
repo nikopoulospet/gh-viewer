@@ -5,19 +5,19 @@ workflow. Keep track of PRs, quickly view your sprint backlog, and check for
 mentions all without switching tabs.
 
 <div align="center">
-  <table cellpadding="8">
+  <table>
     <tr>
       <td align="center" valign="top">
         <picture>
           <source media="(prefers-color-scheme: dark)" srcset="screenshots/01-list-dark.png">
-          <img src="screenshots/01-list-light.png" width="380" hspace="12" alt="The gh-viewer sidebar listing open pull requests, each row showing repository, author, review state, CI status and labels">
+          <img src="screenshots/01-list-light.png" width="380" alt="The gh-viewer sidebar listing open pull requests, each row showing repository, author, review state, CI status and labels">
         </picture>
         <br><sub>Your views, in the sidebar</sub>
       </td>
       <td align="center" valign="top">
         <picture>
           <source media="(prefers-color-scheme: dark)" srcset="screenshots/02-detail-dark.png">
-          <img src="screenshots/02-detail-light.png" width="380" hspace="12" alt="The drill-in view for a single pull request, showing checks with the failing one first, reviews, the description rendered as markdown, and the latest comment">
+          <img src="screenshots/02-detail-light.png" width="380" alt="The drill-in view for a single pull request, showing checks with the failing one first, reviews, the description rendered as markdown, and the latest comment">
         </picture>
         <br><sub>A pull request, drilled into</sub>
       </td>
