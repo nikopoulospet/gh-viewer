@@ -26,15 +26,6 @@ then in Firefox open `about:addons`, click the gear icon, and choose
 **Install Add-on From File…** — or simply drag the downloaded file onto a
 Firefox window.
 
-The build is signed by Mozilla, so it installs permanently and survives
-restarts. It needs **Firefox 140 or newer**; it is desktop-only, since Firefox
-for Android has no sidebar.
-
-> Updates are manual: this is distributed as a signed file rather than through
-> addons.mozilla.org, so Firefox will not upgrade it for you. To update, grab
-> the newer `.xpi` and install it the same way — your saved queries and sign-in
-> are kept.
-
 **2. Give it access to your GitHub.** Open
 [the gh-viewer App page](https://github.com/apps/gh-viewer-sidebar/installations/new),
 press *Install*, and choose which account or organisation it may read — and within
@@ -122,17 +113,7 @@ When you install the App, GitHub asks it to read these, and nothing else:
 It cannot write anything: it can't comment, merge, close, or change a label.
 There is no `contents` permission, so it cannot read your source code.
 
-One thing worth being precise about: GitHub's pull request permission is
-all-or-nothing, and it technically includes the diff of a PR. gh-viewer never
-asks for a diff and never displays one, but the permission itself isn't finer
-grained than that on GitHub's side.
-
-It also asks Firefox (not GitHub) for permission to see the URLs of your open
-tabs. That's what lets clicking a link switch to a tab you already have open
-instead of piling up a duplicate; it's used for nothing else.
-
-Your sign-in token is stored by Firefox on your own machine and is sent only to
-`api.github.com`. Nothing is sent anywhere else — there is no server behind this.
+Your keys are stored locally and shared only with GitHub.
 
 ## Reporting a problem
 
