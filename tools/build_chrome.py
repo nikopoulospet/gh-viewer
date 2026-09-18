@@ -16,7 +16,8 @@ What differs, and why:
   * Icons are rasterised. Chrome refuses to load an extension whose icon is an
     SVG, so the same source SVG is rendered to the PNG sizes Chrome expects.
 
-  python3 tools/build_chrome.py [--out dist/chrome]
+  python3 tools/build_chrome.py              # dist/chrome/, to load unpacked
+  python3 tools/build_chrome.py --zip        # also dist/gh-viewer-chrome-<v>.zip
 """
 
 import argparse
@@ -25,6 +26,7 @@ import pathlib
 import shutil
 import subprocess
 import sys
+import zipfile
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 SOURCE = ROOT / "extension"
@@ -34,6 +36,13 @@ ICON_SIZES = (16, 32, 48, 128)
 # Chrome 114 is where sidePanel landed; below that the manifest loads but the
 # panel never opens, which is worse than refusing to install.
 MIN_CHROME = "114"
+
+# Pinned, with sorted entries, so a commit always packages byte-identically.
+ZIP_EPOCH = (1980, 1, 1, 0, 0, 0)
+
+# Dropping any of these yields a zip that installs and then fails silently.
+REQUIRED = ("manifest.json", "background.js", "sidebar/panel.html",
+            "options/options.html", "lib/store.js", "lib/compat.js")
 
 
 def rasterise(svg, out_dir):
@@ -94,14 +103,56 @@ def build(out):
     return out
 
 
+def package(built, version):
+    """Zip the build for distribution, and check what came out.
+
+    One top-level folder rather than the zip root, so unzipping gives a single
+    directory to point "Load unpacked" at. (A Web Store upload would want the
+    opposite - manifest at the root - and so would need repackaging.)
+    """
+    name = f"gh-viewer-chrome-{version}"
+    archive = built.parent / f"{name}.zip"
+
+    files = sorted(p for p in built.rglob("*") if p.is_file())
+    with zipfile.ZipFile(archive, "w") as out:
+        for path in files:
+            info = zipfile.ZipInfo(f"{name}/{path.relative_to(built).as_posix()}",
+                                   date_time=ZIP_EPOCH)
+            info.compress_type = zipfile.ZIP_DEFLATED
+            info.external_attr = 0o644 << 16
+            out.writestr(info, path.read_bytes())
+
+    with zipfile.ZipFile(archive) as out:
+        names = set(out.namelist())
+        missing = [f for f in REQUIRED if f"{name}/{f}" not in names]
+        if missing:
+            sys.exit(f"[x] {archive.name} is missing {', '.join(missing)}")
+        packaged = json.loads(out.read(f"{name}/manifest.json"))["version"]
+        if packaged != version:
+            sys.exit(f"[x] packaged version is {packaged}, expected {version}")
+
+    return archive
+
+
+def relative(path):
+    return path.relative_to(ROOT) if path.is_relative_to(ROOT) else path
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--out", type=pathlib.Path, default=ROOT / "dist" / "chrome")
+    parser.add_argument("--zip", action="store_true",
+                        help="also package the build for distribution")
     args = parser.parse_args()
 
     out = build(args.out.resolve())
-    shown = out.relative_to(ROOT) if out.is_relative_to(ROOT) else out
-    print(f"[ok] chrome build -> {shown}")
+    print(f"[ok] chrome build -> {relative(out)}")
+
+    if args.zip:
+        version = json.loads((SOURCE / "manifest.json").read_text())["version"]
+        archive = package(out, version)
+        size = archive.stat().st_size
+        print(f"[ok] packaged      -> {relative(archive)} ({size:,} bytes)")
     return 0
 
 

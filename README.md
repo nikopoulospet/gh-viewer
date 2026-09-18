@@ -35,9 +35,16 @@ then in Firefox open `about:addons`, click the gear icon, and choose
 **Install Add-on From File…** — or simply drag the downloaded file onto a
 Firefox window.
 
-*Chrome* — there is no Web Store listing yet, so build it from a clone and load
-it unpacked; see [Running it from source](#running-it-from-source). Chrome 114
-or newer, which is where the side panel arrived.
+*Chrome* — download `gh-viewer-chrome-<version>.zip` from the
+[releases page](https://github.com/nikopoulospet/gh-viewer/releases/latest) and
+unzip it. Open `chrome://extensions`, turn on **Developer mode** (top right),
+click **Load unpacked** and pick the unzipped folder. Needs Chrome 114 or newer,
+which is where the side panel arrived.
+
+> Chrome only installs extensions from its Web Store, and gh-viewer isn't listed
+> there, so this route needs Developer mode and won't auto-update. To move to a
+> new version, unzip it and press ↻ on the extension's card in
+> `chrome://extensions`.
 
 **2. Give it access to your GitHub.** Open
 [the gh-viewer App page](https://github.com/apps/gh-viewer-sidebar/installations/new),
@@ -150,7 +157,8 @@ discards temporary add-ons on restart.
 *Chrome* — Chrome needs a manifest of its own, so build one first:
 
 ```bash
-python3 tools/build_chrome.py     # writes dist/chrome/
+python3 tools/build_chrome.py           # writes dist/chrome/
+python3 tools/build_chrome.py --zip     # and the distributable zip
 ```
 
 Then open `chrome://extensions`, turn on **Developer mode**, click **Load

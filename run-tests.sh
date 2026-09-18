@@ -4,8 +4,8 @@
 # either because you are already inside one (e.g. `nix develop`, or CI) or
 # because this script drops you into one itself via ad-hoc `nix shell` calls.
 #
-#   ./run-tests.sh            static + unit + both browser smokes
-#   ./run-tests.sh fast       static + unit only (no browser, ~1s)
+#   ./run-tests.sh            static + package + unit + both browser smokes
+#   ./run-tests.sh fast       everything but the browsers (~2s)
 #
 # Tests never touch the GitHub API: all responses come from tests/fixtures.
 # The exception is tools/check_queries.py, which is a separate live check.
@@ -49,6 +49,17 @@ run_chrome() {
   fi
 }
 
+# The release depends on this working, and nothing else exercises it - without
+# a check here, a broken package is discovered halfway through cutting a
+# release. It verifies its own output, so running it is the test.
+run_package() {
+  if command -v rsvg-convert >/dev/null 2>&1; then
+    python3 tools/build_chrome.py --zip
+  else
+    $NIX shell nixpkgs#librsvg -c python3 tools/build_chrome.py --zip
+  fi
+}
+
 run_lint() {
   if command -v web-ext >/dev/null 2>&1; then
     web-ext lint --source-dir=extension --output=text
@@ -64,6 +75,9 @@ run_lint | grep -E "^(errors|warnings|notices)" ; track ${PIPESTATUS[0]}
 
 step "static: script collisions"
 python3 tools/check_scripts.py; track $?
+
+step "package: the Chrome build zips and verifies"
+run_package; track $?
 
 step "unit: panel behaviour (jsdom)"
 run_node 'cd tests && node --test "unit/*.test.mjs"'; track $?

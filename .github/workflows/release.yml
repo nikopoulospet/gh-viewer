@@ -37,7 +37,7 @@ jobs:
           fi
 
   release:
-    name: Sign and publish
+    name: Package, sign and publish
     needs: check
     if: needs.check.outputs.needed == 'true'
     runs-on: ubuntu-latest
@@ -65,6 +65,13 @@ jobs:
       # slow layer earns its keep.
       - name: Run the full test suite
         run: nix develop -c ./run-tests.sh
+
+      # The suite above already packages, but the release artifact should come
+      # from a step that says so rather than from a test's leftovers. Before
+      # signing deliberately: a failure here costs nothing, one after it costs
+      # a version bump.
+      - name: Package the Chrome build
+        run: nix develop -c python3 tools/build_chrome.py --zip
 
       - name: Sign with AMO
         env:
@@ -101,8 +108,22 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ needs.check.outputs.version }}
         run: |
-          gh release create "v$VERSION" dist/*.xpi \
+          # --notes is pre-pended to the generated notes, so the install
+          # instructions sit above the commit list rather than replacing it.
+          gh release create "v$VERSION" \
+            "dist/gh-viewer-chrome-$VERSION.zip" dist/*.xpi \
             --title "v$VERSION" \
+            --notes "$(cat <<NOTES
+          **Firefox** — download the \`.xpi\` below, then open \`about:addons\`, click the
+          gear icon and choose *Install Add-on From File…*.
+
+          **Chrome** — download \`gh-viewer-chrome-$VERSION.zip\` below and unzip it. Open
+          \`chrome://extensions\`, turn on **Developer mode**, click **Load unpacked** and
+          pick the unzipped folder. Chrome 114 or newer. Chrome only installs extensions
+          from its Web Store, so this route needs Developer mode and does not auto-update —
+          to move to a new version, unzip it and press ↻ on the extension's card.
+          NOTES
+          )" \
             --generate-notes
           echo "Published [v$VERSION](https://github.com/${{ github.repository }}/releases/tag/v$VERSION)" \
             >> "$GITHUB_STEP_SUMMARY"
