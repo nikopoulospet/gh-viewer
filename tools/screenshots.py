@@ -8,6 +8,7 @@ Nothing here touches GitHub, so no private repository can leak into an image.
   nix shell nixpkgs#firefox nixpkgs#geckodriver -c python3 tools/screenshots.py
 """
 
+import argparse
 import base64
 import json
 import pathlib
@@ -138,14 +139,18 @@ return browser.storage.local.set({ token: 'ghu_demo' }).then(() => boot());
 """
 
 
-def shoot(driver, name):
+def shoot(driver, name, out=None):
     png = driver.call("GET", driver.s("/screenshot"))
-    path = OUT / name
+    path = (out or OUT) / name
     path.write_bytes(base64.b64decode(png))
-    print(f"  wrote {path.relative_to(ROOT)} ({path.stat().st_size // 1024} KB)")
+    try:
+        shown = path.relative_to(ROOT)
+    except ValueError:
+        shown = path
+    print(f"  wrote {shown} ({path.stat().st_size // 1024} KB)")
 
 
-def capture(dark):
+def capture(dark, scale=1, out=None):
     port = free_port()
     gecko = subprocess.Popen(["geckodriver", "--port", str(port), "--allow-system-access"],
                              stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -164,6 +169,11 @@ def capture(dark):
             # Makes prefers-color-scheme: dark match, so the panel renders its
             # dark palette rather than the light one.
             prefs["ui.systemUsesDarkTheme"] = 1
+        if scale != 1:
+            # Renders at N device pixels per CSS pixel, so the layout is
+            # unchanged but the image comes out N times larger and stays sharp.
+            # AMO displays store screenshots far bigger than a real sidebar.
+            prefs["layout.css.devPixelsPerPx"] = str(scale)
         caps = {"capabilities": {"alwaysMatch": {
             "browserName": "firefox",
             "moz:firefoxOptions": {"args": ["-headless"], "prefs": prefs},
@@ -200,7 +210,7 @@ def capture(dark):
         time.sleep(0.4)
         print(f"    list content height: "
               f"{driver.script('return document.documentElement.scrollHeight;')}px")
-        shoot(driver, f"01-list-{theme}.png")
+        shoot(driver, f"01-list-{theme}.png", out)
 
         # The click can land before the panel has finished wiring up, which
         # simply does nothing rather than failing - so retry until it takes.
@@ -214,18 +224,25 @@ def capture(dark):
         else:
             raise AssertionError("the detail view never opened")
         time.sleep(0.4)
-        shoot(driver, f"02-detail-{theme}.png")
+        shoot(driver, f"02-detail-{theme}.png", out)
     finally:
         driver.quit()
         gecko.terminate()
 
 
 def main():
-    OUT.mkdir(exist_ok=True)
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--scale", type=int, default=1,
+                    help="device pixels per CSS pixel; 2 gives store-sized images")
+    ap.add_argument("--out", help="directory to write into (default: screenshots/)")
+    args = ap.parse_args()
+
+    out = (pathlib.Path(args.out) if args.out else OUT).resolve()
+    out.mkdir(parents=True, exist_ok=True)
     for dark in (False, True):
         print(f"{'dark' if dark else 'light'} theme:")
-        capture(dark)
-    print(f"\nScreenshots in {OUT}/ - all data is fabricated.")
+        capture(dark, scale=args.scale, out=out)
+    print(f"\nScreenshots in {out}/ - all data is fabricated.")
 
 
 if __name__ == "__main__":

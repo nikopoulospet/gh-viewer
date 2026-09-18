@@ -3,6 +3,11 @@
   "name": "gh-viewer",
   "version": "0.1.0",
   "description": "Saved GraphQL views of your GitHub issues, PRs and discussions, in the Firefox sidebar. Read-only.",
+  "icons": {
+    "48": "icons/app.svg",
+    "96": "icons/app.svg",
+    "128": "icons/app.svg"
+  },
   "browser_specific_settings": {
     "gecko": {
       "id": "gh-viewer@nikopoulospet.github.io",
