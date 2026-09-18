@@ -245,6 +245,24 @@ And the token is withheld until `fetch` is stubbed: with a token present, the
 panel's own startup would send it to the real API, and the 401 coming back wipes
 the token and replaces the view with the sign-in screen.
 
+### Continuous integration
+
+`.github/workflows/tests.yml` runs on pushes to `main` and on every PR, but does
+real work only when something testable changed. Which paths count is a list at
+the top of the file — `TESTABLE_PATHS` — not a regex buried in a shell step; add
+a line to extend it.
+
+The shape matters. **`tests` and `smoke` are optional and may be skipped; a
+single `gate` job is the required check.** That is because a skipped job never
+reports a result, and branch protection waits for a required check forever — so
+requiring a path-filtered job makes docs-only PRs permanently unmergeable. The
+gate runs with `if: always()`, treats a *skipped* dependency as a pass and a
+*failed* one as a failure, and so is the one status guaranteed to arrive.
+
+Branch protection should therefore require exactly one check: **`CI`** (the gate
+job's name). Adding the optional jobs back to the required list would reintroduce
+the deadlock.
+
 ### Linting
 
 `web-ext lint` runs as part of `./run-tests.sh`, so a packaging blocker shows up

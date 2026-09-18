@@ -5,6 +5,21 @@ on:
     branches: [main]
   pull_request:
 
+env:
+  # Changing anything under these paths runs the test suite. Everything else -
+  # README, DEVELOPING, docs/, screenshots/, LICENSE - cannot change a test
+  # result, so it does not. Prefixes, matched against each changed file path;
+  # add a line to extend, no regex to get right.
+  TESTABLE_PATHS: |
+    extension/
+    chrome/
+    tests/
+    tools/
+    .github/workflows/
+    flake.nix
+    flake.lock
+    run-tests.sh
+
 # A new push supersedes the run in progress for the same branch; there is no
 # value in finishing tests for a commit nobody will look at again.
 concurrency:
@@ -12,13 +27,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # Both checks below are REQUIRED by branch protection, which is why this is a
-  # gate rather than a `paths:` filter on the workflow. A skipped job never
-  # reports a result, and branch protection waits for it forever - so a docs-only
-  # PR would become unmergeable. Instead the jobs always run and always report;
-  # they just do nothing expensive when nothing testable changed.
   changes:
-    name: Does anything testable change?
+    name: Which changes landed?
     runs-on: ubuntu-latest
     outputs:
       relevant: ${{ steps.filter.outputs.relevant }}
@@ -35,9 +45,9 @@ jobs:
           else
             BEFORE="${{ github.event.before }}"
             if [ -z "$BEFORE" ] || [ "$BEFORE" = "0000000000000000000000000000000000000000" ]; then
-              FILES=""   # new branch or forced push: no reliable base, so run everything
-              echo "no comparable base commit - running the full suite"
+              # New branch or forced push: no reliable base, so assume the worst.
               echo "relevant=true" >> "$GITHUB_OUTPUT"
+              echo "No comparable base commit - running the full suite." >> "$GITHUB_STEP_SUMMARY"
               exit 0
             fi
             FILES="$(git diff --name-only "$BEFORE" HEAD)"
@@ -46,53 +56,103 @@ jobs:
           echo "changed files:"
           echo "$FILES" | sed 's/^/  /'
 
-          # Code, tests, and the infrastructure that runs them. Everything else -
-          # README, DEVELOPING, docs/, screenshots/, LICENSE - cannot break a test.
-          if echo "$FILES" | grep -qE '^(extension/|chrome/|tests/|tools/|\.github/workflows/|flake\.(nix|lock)$|run-tests\.sh$)'; then
-            echo "relevant=true" >> "$GITHUB_OUTPUT"
-            echo "**Testable changes found — running the suite.**" >> "$GITHUB_STEP_SUMMARY"
+          RELEVANT=false
+          MATCHED=""
+          while IFS= read -r file; do
+            [ -z "$file" ] && continue
+            while IFS= read -r prefix; do
+              [ -z "$prefix" ] && continue
+              case "$file" in
+                "$prefix"*) RELEVANT=true; MATCHED="$MATCHED $file" ;;
+              esac
+            done <<< "$TESTABLE_PATHS"
+          done <<< "$FILES"
+
+          echo "relevant=$RELEVANT" >> "$GITHUB_OUTPUT"
+          if [ "$RELEVANT" = true ]; then
+            echo "**Running the suite.** Testable changes:" >> "$GITHUB_STEP_SUMMARY"
+            for f in $MATCHED; do echo "- \`$f\`" >> "$GITHUB_STEP_SUMMARY"; done
           else
-            echo "relevant=false" >> "$GITHUB_OUTPUT"
-            echo "**No code, test or infrastructure changes — suite skipped.**" >> "$GITHUB_STEP_SUMMARY"
+            echo "**Suite skipped** - nothing changed under:" >> "$GITHUB_STEP_SUMMARY"
+            echo "$TESTABLE_PATHS" | sed 's/^/- `/; s/$/`/' >> "$GITHUB_STEP_SUMMARY"
           fi
 
-  # Fast logic layer: static script-collision check + jsdom unit tests.
-  # Kept separate from `smoke` so a slow/flaky browser run can never mask a
-  # fast, deterministic logic failure (or delay reporting one).
+  # Fast logic layer: static script-collision check + jsdom unit tests. Kept
+  # separate from `smoke` so a slow browser run cannot mask or delay a fast,
+  # deterministic logic failure.
   tests:
     name: Static checks + unit tests
     needs: changes
+    if: needs.changes.outputs.relevant == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        if: needs.changes.outputs.relevant == 'true'
-
       - uses: DeterminateSystems/nix-installer-action@main
-        if: needs.changes.outputs.relevant == 'true'
 
-      - name: npm ci (tests/)
-        if: needs.changes.outputs.relevant == 'true'
+      - name: Install test dependencies
         run: nix develop -c bash -c 'cd tests && npm ci'
 
-      - name: static check + unit tests
-        if: needs.changes.outputs.relevant == 'true'
+      - name: Static checks and unit tests
         run: nix develop -c ./run-tests.sh fast
 
-  # Slow layer: installs the extension into real headless Firefox via
-  # geckodriver. Already runs -headless, so no display server is needed, but
-  # browser startup + WebDriver round-trips make this the slow job.
+  # Slow layer: installs the extension into a real headless browser. Already
+  # headless, so no display server is needed, but browser startup and WebDriver
+  # round-trips make this the slow job.
   smoke:
-    name: Browser smoke test (headless Firefox)
+    name: Browser smoke tests
     needs: changes
+    if: needs.changes.outputs.relevant == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        if: needs.changes.outputs.relevant == 'true'
-
       - uses: DeterminateSystems/nix-installer-action@main
-        if: needs.changes.outputs.relevant == 'true'
 
-      - name: headless Firefox smoke test
-        if: needs.changes.outputs.relevant == 'true'
+      - name: Headless Firefox smoke test
         timeout-minutes: 15
         run: nix develop -c python3 tests/smoke.py
+
+  # The single REQUIRED check. Everything above is optional and may be skipped;
+  # this always runs and reports, so branch protection has one status that is
+  # guaranteed to arrive. A skipped dependency is a pass - it means the gate
+  # decided there was nothing to test - while a failed one fails the gate.
+  gate:
+    name: CI
+    needs: [changes, tests, smoke]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check the results of every optional job
+        run: |
+          CHANGES="${{ needs.changes.result }}"
+          TESTS="${{ needs.tests.result }}"
+          SMOKE="${{ needs.smoke.result }}"
+          echo "changes: $CHANGES"
+          echo "tests:   $TESTS"
+          echo "smoke:   $SMOKE"
+
+          # The filter itself failing is not a pass: it would silently skip
+          # everything downstream.
+          if [ "$CHANGES" != "success" ]; then
+            echo "::error::the change filter did not succeed ($CHANGES)"
+            exit 1
+          fi
+
+          FAILED=0
+          for result in "$TESTS" "$SMOKE"; do
+            case "$result" in
+              success|skipped) ;;
+              *) FAILED=1 ;;
+            esac
+          done
+
+          if [ "$FAILED" = 1 ]; then
+            echo "::error::a test job did not pass (tests=$TESTS smoke=$SMOKE)"
+            echo "**CI failed** - tests: \`$TESTS\`, smoke: \`$SMOKE\`" >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+
+          if [ "$TESTS" = "skipped" ]; then
+            echo "**CI passed** - no testable changes, so the suite was skipped." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "**CI passed** - the full suite ran." >> "$GITHUB_STEP_SUMMARY"
+          fi
