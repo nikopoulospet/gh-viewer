@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>gh-viewer — settings</title>
+    <link rel="stylesheet" href="../sidebar/panel.css" />
+    <link rel="stylesheet" href="options.css" />
+  </head>
+  <body class="options">
+    <h1>gh-viewer</h1>
+
+    <nav class="tabs" id="tabs">
+      <button type="button" class="tab" data-tab="queries">Queries</button>
+      <button type="button" class="tab" data-tab="connection">Connection</button>
+      <button type="button" class="tab" data-tab="diagnostics">Diagnostics</button>
+    </nav>
+
+    <section id="tab-queries" class="tab-panel">
+      <h2>Saved queries</h2>
+      <p class="muted">
+        Each query is a GraphQL document plus variables. <b>List path</b> points at
+        the array to render (e.g. <code>search.nodes</code>); several comma-separated
+        paths are merged and deduped. <b>Count path</b> is optional and only feeds
+        the status line. Rows drill down by node <code>id</code>, so keep
+        <code>id</code> in the selection.
+      </p>
+      <div id="queries"></div>
+      <div class="actions">
+        <button id="add">Add query</button>
+        <button id="save">Save all</button>
+        <button id="export">Export JSON</button>
+        <button id="import">Import JSON</button>
+        <button id="reset">Reset to defaults</button>
+      </div>
+      <p id="status" class="muted"></p>
+    </section>
+
+    <section id="tab-connection" class="tab-panel" hidden>
+      <h2>GitHub App</h2>
+      <p class="muted">
+        gh-viewer ships with its own App, so there is nothing to fill in here.
+        Override the Client ID only to point at an App you registered yourself;
+        clearing the field restores the built-in one. It is a public identifier
+        either way — gh-viewer holds no secret.
+      </p>
+      <label>Client ID
+        <input id="client-id" type="text" autocomplete="off" />
+      </label>
+      <p id="account" class="muted"></p>
+      <button id="save-client">Save Client ID</button>
+      <button id="sign-out">Sign out</button>
+    </section>
+
+    <section id="tab-diagnostics" class="tab-panel" hidden>
+      <h2>Export state</h2>
+      <p class="muted">
+        A snapshot of how gh-viewer is configured and what it can reach, for
+        attaching to a bug report.
+      </p>
+      <p class="muted">
+        <b>Included:</b> extension version and permissions, browser user agent,
+        which App and Client ID are in use, whether you are signed in, and your
+        saved queries with their variables.
+        <b>Never included:</b> your access token — only whether one exists and
+        what kind it is.
+      </p>
+      <p class="warn-note">
+        Your saved queries can name private repositories and organisations.
+        Read the report before sharing it.
+      </p>
+      <label class="inline">
+        <input id="probe" type="checkbox" />
+        Also run each saved query against GitHub and record what failed
+        (costs one rate-limit point per query; records counts and errors, never
+        titles or URLs)
+      </label>
+      <div class="actions">
+        <button id="generate" class="primary">Generate report</button>
+        <button id="copy">Copy to clipboard</button>
+      </div>
+      <p id="diagnostics-status" class="muted"></p>
+      <pre id="report" class="report" hidden></pre>
+    </section>
+
+    <input id="file" type="file" accept="application/json" hidden />
+
+    <script src="../lib/compat.js"></script>
+    <script src="../lib/store.js"></script>
+    <script src="../lib/api.js"></script>
+    <script src="../lib/diagnostics.js"></script>
+    <script src="options.js"></script>
+  </body>
+</html>

@@ -1,0 +1,58 @@
+body.options {
+  display: block; max-width: 56em; margin: 0 auto; padding: 24px 20px 60px;
+  font-size: 13px;
+}
+h1 { font-size: 20px; margin: 0 0 20px; }
+section { margin-bottom: 32px; }
+section h2 { font-size: 15px; margin: 0 0 6px; }
+label { display: block; margin: 10px 0 4px; font-weight: 600; }
+label input[type="text"] { font-weight: 400; }
+code { background: var(--surface); padding: 1px 4px; border-radius: 4px; }
+.card {
+  border: 1px solid var(--border); border-radius: 8px;
+  padding: 12px 14px; margin-bottom: 12px; background: var(--surface);
+}
+.card-head { display: flex; gap: 8px; align-items: center; }
+.card-head input { flex: 1 1 auto; font-weight: 600; }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+textarea {
+  width: 100%; font: 12px/1.45 ui-monospace, monospace; color: inherit;
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: 6px; padding: 7px; resize: vertical; margin-top: 4px;
+}
+textarea.doc { min-height: 190px; }
+textarea.vars { min-height: 70px; }
+textarea.invalid { border-color: var(--bad); }
+.actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+.danger { color: var(--bad); }
+#status { min-height: 20px; }
+#status.ok { color: var(--ok); }
+#status.bad { color: var(--bad); }
+
+.tabs {
+  display: flex; gap: 2px; margin-bottom: 18px;
+  border-bottom: 1px solid var(--border);
+}
+.tab {
+  border: 0; border-bottom: 2px solid transparent; border-radius: 0;
+  background: none; padding: 7px 12px; color: var(--muted); font-weight: 600;
+}
+.tab:hover { background: var(--hover); color: var(--fg); }
+.tab[aria-selected="true"] {
+  color: var(--fg); border-bottom-color: var(--accent);
+}
+.tab-panel[hidden] { display: none; }
+label.inline {
+  display: flex; gap: 6px; align-items: flex-start;
+  font-weight: 400; color: var(--muted); margin: 12px 0;
+}
+label.inline input { margin-top: 2px; }
+.warn-note {
+  border-left: 3px solid var(--wait); padding: 6px 10px; margin: 12px 0;
+  background: var(--surface); color: var(--fg);
+}
+.report {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 6px;
+  padding: 10px; margin-top: 12px; max-height: 26em; overflow: auto;
+  font: 11px/1.45 ui-monospace, monospace; white-space: pre;
+}
