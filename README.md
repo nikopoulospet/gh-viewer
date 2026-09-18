@@ -1,18 +1,8 @@
 # gh-viewer
 
-A Firefox sidebar for the GitHub work that's actually yours — open PRs, reviews
-waiting on you, issues, discussions — sitting beside whatever else you're doing
-instead of in a tab you keep losing.
-
-You pick what it shows. Each view is a GitHub search you save once, and the
-sidebar renders the results as a compact list: title, repo, review state, CI
-status, labels. Click a row to see the detail — checks, reviews, latest
-comments — without leaving the sidebar. Click any link and it opens in a tab —
-switching to one you already have open on that page, rather than duplicating
-it — so the list stays exactly where it was.
-
-It can only read, and only issues, pull requests and discussions. It has no
-access to your code.
+A Firefox sidebar for managing GitHub views independently from your tab
+workflow. Keep track of PRs, quickly view your sprint backlog, and check for
+mentions all without switching tabs.
 
 <p align="center">
   <picture>
