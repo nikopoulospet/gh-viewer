@@ -339,3 +339,19 @@ test("exactly one query ships by default, and it is the involves view", async ()
   assert.doesNotMatch(only.document, /commits\(last/,
     "must not reintroduce the Contents-permission traversal");
 });
+
+test("comment counts are pluralised correctly", async () => {
+  const one = JSON.parse(JSON.stringify(fixture("search")));
+  one.data.search.nodes[0].comments.totalCount = 1;
+  one.data.search.nodes[1].comments.totalCount = 3;
+  const dom = await loadPage("sidebar/panel.html", {
+    browser: mockBrowser(SIGNED_IN),
+    fetch: mockFetch([one]),
+  });
+  await settle();
+
+  const counts = [...dom.window.document.querySelectorAll(".row .comments")]
+    .map((n) => n.textContent);
+  assert.ok(counts.includes("1 comment"), `expected a singular, got ${counts.join(" | ")}`);
+  assert.ok(counts.includes("3 comments"));
+});

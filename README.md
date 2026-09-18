@@ -14,6 +14,20 @@ it — so the list stays exactly where it was.
 It can only read, and only issues, pull requests and discussions. It has no
 access to your code.
 
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="screenshots/01-list-dark.png">
+    <img src="screenshots/01-list-light.png" alt="The gh-viewer sidebar listing open pull requests, each row showing repository, author, review state, CI status and labels" width="380">
+  </picture>
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="screenshots/02-detail-dark.png">
+    <img src="screenshots/02-detail-light.png" alt="The drill-in view for a single pull request, showing checks with the failing one first, reviews, the description rendered as markdown, and the latest comment" width="380">
+  </picture>
+</p>
+
+<p align="center"><sub>The list, and a pull request drilled into. Sample data;
+the panel follows your Firefox theme.</sub></p>
+
 ## Install
 
 **1. Add it to Firefox.** Download the latest `.xpi` from the
