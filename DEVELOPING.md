@@ -217,6 +217,34 @@ now requires — was introduced there. `gecko_android` is declared separately at
 142 for the same reason; Firefox for Android has no sidebar, so this is desktop
 software regardless.
 
+### Screenshots
+
+`screenshots/` is generated, never hand-captured:
+
+```bash
+nix shell nixpkgs#firefox nixpkgs#geckodriver -c python3 tools/screenshots.py
+```
+
+It drives the same headless Firefox the smoke test uses, installs the extension,
+stubs `fetch`, and photographs the real UI over fabricated data — so no private
+repository can ever appear in an image, and the shots stay honest when the UI
+changes. Both themes are captured by forcing `ui.systemUsesDarkTheme`.
+
+The images are 380x520 — a realistic sidebar width, and roughly square rather
+than the long thin strip a full-height panel produces. Note the generator sizes
+the **viewport**, not the window: Firefox enforces a minimum window width of 500
+and subtracts its own frame, so asking for a 420px window silently yields a
+244px viewport, which wraps every title onto three lines and makes the images
+twice as tall as they need to be. The frame overhead is measured and corrected
+rather than hard-coded, since it varies by version.
+
+Two ordering constraints are load-bearing, both learned the hard way. Storage is
+seeded from the options page *before* the panel opens, because writing `queries`
+while the panel is live fires `storage.onChanged` and re-boots it mid-capture.
+And the token is withheld until `fetch` is stubbed: with a token present, the
+panel's own startup would send it to the real API, and the 401 coming back wipes
+the token and replaces the view with the sign-in screen.
+
 ### Linting
 
 `web-ext lint` runs as part of `./run-tests.sh`, so a packaging blocker shows up

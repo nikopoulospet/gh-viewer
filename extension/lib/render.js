@@ -47,6 +47,11 @@ function el(tag, className, text) {
   return node;
 }
 
+// "1 comments" is the kind of thing nobody notices until it is in a screenshot.
+function plural(count, word) {
+  return `${count} ${word}${count === 1 ? "" : "s"}`;
+}
+
 function relative(iso) {
   if (!iso) return "";
   const seconds = (Date.now() - new Date(iso).getTime()) / 1000;
@@ -133,7 +138,7 @@ GV.render = {
     if (node.author?.login) meta.append(el("span", "author", node.author.login));
     meta.append(el("span", "when", relative(node.updatedAt)));
     if (node.comments?.totalCount) {
-      meta.append(el("span", "comments", `${node.comments.totalCount} comments`));
+      meta.append(el("span", "comments", plural(node.comments.totalCount, "comment")));
     }
     row.append(meta);
 

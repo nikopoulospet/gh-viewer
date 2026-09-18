@@ -1,18 +1,22 @@
 # gh-viewer
 
-A Firefox sidebar for the GitHub work that's actually yours — open PRs, reviews
-waiting on you, issues, discussions — sitting beside whatever else you're doing
-instead of in a tab you keep losing.
+A Firefox sidebar for managing GitHub views independently from your tab
+workflow. Keep track of PRs, quickly view your sprint backlog, and check for
+mentions all without switching tabs.
 
-You pick what it shows. Each view is a GitHub search you save once, and the
-sidebar renders the results as a compact list: title, repo, review state, CI
-status, labels. Click a row to see the detail — checks, reviews, latest
-comments — without leaving the sidebar. Click any link and it opens in a tab —
-switching to one you already have open on that page, rather than duplicating
-it — so the list stays exactly where it was.
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="screenshots/01-list-dark.png">
+    <img src="screenshots/01-list-light.png" alt="The gh-viewer sidebar listing open pull requests, each row showing repository, author, review state, CI status and labels" width="380">
+  </picture>
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="screenshots/02-detail-dark.png">
+    <img src="screenshots/02-detail-light.png" alt="The drill-in view for a single pull request, showing checks with the failing one first, reviews, the description rendered as markdown, and the latest comment" width="380">
+  </picture>
+</p>
 
-It can only read, and only issues, pull requests and discussions. It has no
-access to your code.
+<p align="center"><sub>The list, and a pull request drilled into. Sample data;
+the panel follows your Firefox theme.</sub></p>
 
 ## Install
 
@@ -21,15 +25,6 @@ access to your code.
 then in Firefox open `about:addons`, click the gear icon, and choose
 **Install Add-on From File…** — or simply drag the downloaded file onto a
 Firefox window.
-
-The build is signed by Mozilla, so it installs permanently and survives
-restarts. It needs **Firefox 140 or newer**; it is desktop-only, since Firefox
-for Android has no sidebar.
-
-> Updates are manual: this is distributed as a signed file rather than through
-> addons.mozilla.org, so Firefox will not upgrade it for you. To update, grab
-> the newer `.xpi` and install it the same way — your saved queries and sign-in
-> are kept.
 
 **2. Give it access to your GitHub.** Open
 [the gh-viewer App page](https://github.com/apps/gh-viewer-sidebar/installations/new),
@@ -118,17 +113,7 @@ When you install the App, GitHub asks it to read these, and nothing else:
 It cannot write anything: it can't comment, merge, close, or change a label.
 There is no `contents` permission, so it cannot read your source code.
 
-One thing worth being precise about: GitHub's pull request permission is
-all-or-nothing, and it technically includes the diff of a PR. gh-viewer never
-asks for a diff and never displays one, but the permission itself isn't finer
-grained than that on GitHub's side.
-
-It also asks Firefox (not GitHub) for permission to see the URLs of your open
-tabs. That's what lets clicking a link switch to a tab you already have open
-instead of piling up a duplicate; it's used for nothing else.
-
-Your sign-in token is stored by Firefox on your own machine and is sent only to
-`api.github.com`. Nothing is sent anywhere else — there is no server behind this.
+Your keys are stored locally and shared only with GitHub.
 
 ## Reporting a problem
 
