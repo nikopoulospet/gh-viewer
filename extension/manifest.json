@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "gh-viewer",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Saved GraphQL views of your GitHub issues, PRs and discussions, in the Firefox sidebar. Read-only.",
   "browser_specific_settings": {
     "gecko": {
