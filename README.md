@@ -1,8 +1,8 @@
 # gh-viewer
 
-A Firefox sidebar for managing GitHub views independently from your tab
-workflow. Keep track of PRs, quickly view your sprint backlog, and check for
-mentions all without switching tabs.
+A Firefox sidebar — and a Chrome side panel — for managing GitHub views
+independently from your tab workflow. Keep track of PRs, quickly view your
+sprint backlog, and check for mentions all without switching tabs.
 
 <div align="center">
   <table>
@@ -27,11 +27,17 @@ mentions all without switching tabs.
 
 ## Install
 
-**1. Add it to Firefox.** Download the latest `.xpi` from the
+**1. Add it to your browser.**
+
+*Firefox* — download the latest `.xpi` from the
 [releases page](https://github.com/nikopoulospet/gh-viewer/releases/latest),
 then in Firefox open `about:addons`, click the gear icon, and choose
 **Install Add-on From File…** — or simply drag the downloaded file onto a
 Firefox window.
+
+*Chrome* — there is no Web Store listing yet, so build it from a clone and load
+it unpacked; see [Running it from source](#running-it-from-source). Chrome 114
+or newer, which is where the side panel arrived.
 
 **2. Give it access to your GitHub.** Open
 [the gh-viewer App page](https://github.com/apps/gh-viewer-sidebar/installations/new),
@@ -42,11 +48,11 @@ any time in GitHub's *Settings → Applications*.
 > Installing on an organisation you don't own sends a request to an owner
 > instead. They approve it once, and it covers everyone in the org.
 
-**3. Sign in.** Open the sidebar (View → Sidebar → gh-viewer, or the toolbar
-button). Press **Connect**. Firefox asks whether gh-viewer may access
-`github.com` — it needs that only to exchange the sign-in code, and the answer
-is remembered. GitHub then shows you a short code, you approve it in the tab
-that opens, and that's it — you won't be asked again.
+**3. Sign in.** Open the panel — in Firefox, View → Sidebar → gh-viewer; in
+Chrome, the toolbar button — and press **Connect**. The browser asks whether
+gh-viewer may access `github.com` — it needs that only to exchange the sign-in
+code, and the answer is remembered. GitHub then shows you a short code, you
+approve it in the tab that opens, and that's it — you won't be asked again.
 
 ## Using it
 
@@ -137,11 +143,22 @@ private repositories and organisations, and those do travel with it.
 
 ## Running it from source
 
-If you would rather build it yourself than install the signed file, open
-`about:debugging#/runtime/this-firefox`, choose *Load Temporary Add-on*, and
-pick `extension/manifest.json` from a clone of this repo. Firefox discards
-temporary add-ons on restart, so this is for development rather than daily use —
-see [DEVELOPING.md](DEVELOPING.md).
+*Firefox* — open `about:debugging#/runtime/this-firefox`, choose *Load Temporary
+Add-on*, and pick `extension/manifest.json` from a clone of this repo. Firefox
+discards temporary add-ons on restart.
+
+*Chrome* — Chrome needs a manifest of its own, so build one first:
+
+```bash
+python3 tools/build_chrome.py     # writes dist/chrome/
+```
+
+Then open `chrome://extensions`, turn on **Developer mode**, click **Load
+unpacked** and pick `dist/chrome`. Re-run the build and press ↻ on the card
+after changing anything.
+
+Either way this is for development rather than daily use — see
+[DEVELOPING.md](DEVELOPING.md).
 
 ## If something looks off
 
@@ -158,8 +175,8 @@ the App was configured to expire tokens. Pressing Connect again fixes it.
 **Nothing appears after you press Connect.** The App needs Device Flow enabled;
 whoever registered it can turn that on in its settings.
 
-**Connect says it needs permission to reach github.com.** Firefox asks before
-letting gh-viewer talk to `github.com`, and the answer wasn't Allow. Press
-Connect again and allow it, or grant it from the extensions button in the
+**Connect says it needs permission to reach github.com.** The browser asks
+before letting gh-viewer talk to `github.com`, and the answer wasn't Allow.
+Press Connect again and allow it, or grant it from the extensions button in the
 toolbar. Nothing else in gh-viewer uses that access — listing your issues and
 PRs goes to `api.github.com`, which needs no permission at all.

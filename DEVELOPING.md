@@ -123,16 +123,17 @@ tell you that, since it can see things the App deliberately cannot.
 ## Testing
 
 ```bash
-./run-tests.sh          # static + unit + headless Firefox
+./run-tests.sh          # static + unit + headless Firefox + headless Chrome
 ./run-tests.sh fast     # skips the browser layer (~1s)
 ```
 
 Everything is hermetic — no test touches the GitHub API, and all responses come
 from `tests/fixtures/`, which are **synthetic on purpose**: this repo is public,
-so fixtures built from real private-repo data would publish it. Node, Firefox
-and geckodriver are fetched by nix at user level; nothing is installed globally.
+so fixtures built from real private-repo data would publish it. Node, both
+browsers and both drivers are fetched by nix at user level; nothing is installed
+globally.
 
-Three layers, each catching what the one below cannot:
+Four layers, each catching what the one below cannot:
 
 - **`tools/check_scripts.py`** — the extension's pages load classic scripts that
   share one global scope, so a top-level `const` of the same name in two files
@@ -147,12 +148,46 @@ Three layers, each catching what the one below cannot:
   cannot: the MV3 manifest is accepted, CSP allows the scripts, `browser.*`
   behaves (including `browser.action`, which replaced `browserAction`), and the
   CSS actually paints.
+- **`tests/smoke_chrome.py`** — the same checks against the Chrome build, so the
+  claim that one source tree serves both browsers is tested rather than assumed.
+  It builds `dist/chrome/` on every run, so it can never pass against a stale
+  bundle, and it additionally asserts the things `tools/build_chrome.py` rewrites:
+  the service worker registers, `side_panel` replaced `sidebar_action`, and no
+  Gecko-only key survived.
 
-Two things the browser layer needs that are easy to trip over: the extension's
-internal UUID is pinned via the `extensions.webextensions.uuids` pref so its
-pages have a stable address, and geckodriver must be started with
+Things the browser layers need that are easy to trip over. On Firefox: the
+extension's internal UUID is pinned via the `extensions.webextensions.uuids`
+pref so its pages have a stable address, and geckodriver must be started with
 `--allow-system-access`, because opening a privileged `moz-extension://` page
-requires switching to the chrome context.
+requires switching to the chrome context. On Chrome: only the *new* headless
+mode loads extensions, chromedriver must be pointed at the dev shell's chromium
+or it picks up whatever system Chrome it finds (usually the wrong version), and
+the extension's id is read back off its service worker target rather than
+guessed — which is also what proves the MV3 background registered at all.
+
+## The Chrome port
+
+`extension/` is the single source of truth and is written Firefox-first;
+`tools/build_chrome.py` derives `dist/chrome/` from it. The whole tree is copied
+wholesale, so anything added to `extension/` later ships to Chrome with no list
+here to update, and only the things the two browsers genuinely disagree about
+are rewritten:
+
+| Firefox | Chrome | why |
+| --- | --- | --- |
+| `sidebar_action` | `side_panel` + the `sidePanel` permission | different names for the same idea |
+| `background.scripts` | `background.service_worker` | MV3 means a service worker on Chrome |
+| `extension/background.js` | `chrome/background.js` | Chrome has no `sidebarAction.toggle()`; the action button is wired up declaratively with `setPanelBehavior` instead |
+| `browser_specific_settings` | *removed* | Gecko-only, and Chrome rejects the manifest outright if it is left in |
+| `icons/icon.svg` | rasterised PNGs | Chrome refuses to load an extension whose icon is an SVG |
+
+Two things deliberately did *not* become build-time rewrites. Page markup and
+library code are shared verbatim: the only source difference the port needed was
+`extension/lib/compat.js`, which aliases `chrome` to `browser` and is loaded
+first on both pages — it is a no-op in Firefox, where `browser` already exists,
+and Chrome's MV3 APIs already return promises, which is the only other thing the
+libraries assume. And `dist/` is generated, never committed; the Chrome smoke
+test rebuilds it on every run.
 
 ## Packaging and distribution
 
@@ -274,13 +309,14 @@ the token and replaces the view with the sign-in screen.
 ### Continuous integration
 
 `.github/workflows/tests.yml` runs on pushes to `main` and on every PR, but does
-real work only when something testable changed. Which paths count is a list at
-the top of the file — `TESTABLE_PATHS` — not a regex buried in a shell step; add
-a line to extend it.
+real work only when something testable changed. Which paths count is a
+`paths-filter` block near the top of the file, with one list per job so each
+suite names what it actually depends on; add a line to extend it.
 
-The shape matters. **`tests` and `smoke` are optional and may be skipped; a
-single `gate` job is the required check.** That is because a skipped job never
-reports a result, and branch protection waits for a required check forever — so
+The shape matters. **`tests`, `smoke` and `smoke-chrome` are optional and may
+be skipped; a single `gate` job is the required check.** That is because a
+skipped job never reports a result, and branch protection waits for a required
+check forever — so
 requiring a path-filtered job makes docs-only PRs permanently unmergeable. The
 gate runs with `if: always()`, treats a *skipped* dependency as a pass and a
 *failed* one as a failure, and so is the one status guaranteed to arrive.
@@ -303,11 +339,15 @@ extension/
   lib/auth.js       device flow
   lib/api.js        GraphQL client, partial-error aware
   lib/render.js     list rows, the drill-down view, and its detail query
+  lib/compat.js     aliases `chrome` to `browser`; a no-op in Firefox
   sidebar/          the panel
   options/          query editor
+chrome/
+  background.js     Chrome's service worker, in place of extension/background.js
 tools/
   register_app.py   App manifest registration flow
   check_queries.py  validates every shipped GraphQL document
+  build_chrome.py   derives dist/chrome/ from extension/
 ```
 
 Two conventions worth keeping:
