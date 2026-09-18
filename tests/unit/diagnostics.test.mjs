@@ -89,7 +89,8 @@ test("the options page exposes a diagnostics tab", async () => {
   const dom = await optionsPage({});
   const names = [...dom.window.document.querySelectorAll(".tab")]
     .map((t) => t.dataset.tab);
-  assert.deepEqual(Array.from(names), ["queries", "connection", "diagnostics"]);
+  assert.deepEqual(Array.from(names),
+                   ["queries", "connection", "access", "diagnostics"]);
 
   const diagnostics = dom.window.document.getElementById("tab-diagnostics");
   assert.equal(diagnostics.hidden, true, "queries tab shows first");

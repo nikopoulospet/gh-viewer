@@ -27,10 +27,15 @@ test("every panel script evaluates in one shared scope", async () => {
 });
 
 test("without a token the panel asks you to connect", async () => {
-  const dom = await loadPage("sidebar/panel.html", { browser: mockBrowser() });
+  const browser = mockBrowser();
+  const dom = await loadPage("sidebar/panel.html", { browser });
   await settle();
   assert.match(dom.window.document.body.textContent, /Sign in to GitHub/);
-  assert.match(dom.window.document.body.textContent, /installed on the account or org/);
+  // Signing in is the whole step. Installing the App on an org is a settings
+  // task most people never need, and raising it here made it look like one more
+  // thing to do before anything works.
+  assert.doesNotMatch(dom.window.document.body.textContent, /installed on the account/);
+  assert.doesNotMatch(dom.window.document.body.textContent, /organisations gh-viewer/);
 });
 
 test("connecting asks for the github.com/login host permission first", async () => {
