@@ -5,21 +5,6 @@ on:
     branches: [main]
   pull_request:
 
-env:
-  # Changing anything under these paths runs the test suite. Everything else -
-  # README, DEVELOPING, docs/, screenshots/, LICENSE - cannot change a test
-  # result, so it does not. Prefixes, matched against each changed file path;
-  # add a line to extend, no regex to get right.
-  TESTABLE_PATHS: |
-    extension/
-    chrome/
-    tests/
-    tools/
-    .github/workflows/
-    flake.nix
-    flake.lock
-    run-tests.sh
-
 # A new push supersedes the run in progress for the same branch; there is no
 # value in finishing tests for a commit nobody will look at again.
 concurrency:
@@ -31,51 +16,45 @@ jobs:
     name: Which changes landed?
     runs-on: ubuntu-latest
     outputs:
-      relevant: ${{ steps.filter.outputs.relevant }}
+      unit: ${{ steps.filter.outputs.unit }}
+      smoke: ${{ steps.filter.outputs.smoke }}
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 0 # push events diff against the previous commit
 
-      - id: filter
+      # Each job's paths live next to that job's meaning, as YAML globs. To make
+      # something trigger a suite, add a line here - there is no regex, and no
+      # single list that every job has to share.
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            unit:
+              - 'extension/**'
+              - 'tests/**'
+              - 'tools/**'
+              - '.github/workflows/tests.yml'
+            smoke:
+              - 'extension/**'
+              - 'chrome/**'
+              - 'tests/**'
+              - 'tools/build_chrome.py'
+              - 'flake.nix'
+              - 'flake.lock'
+              - 'run-tests.sh'
+              - '.github/workflows/tests.yml'
+
+      - name: Report what will run
         run: |
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            git fetch -q origin "${{ github.base_ref }}"
-            FILES="$(git diff --name-only "origin/${{ github.base_ref }}...HEAD")"
-          else
-            BEFORE="${{ github.event.before }}"
-            if [ -z "$BEFORE" ] || [ "$BEFORE" = "0000000000000000000000000000000000000000" ]; then
-              # New branch or forced push: no reliable base, so assume the worst.
-              echo "relevant=true" >> "$GITHUB_OUTPUT"
-              echo "No comparable base commit - running the full suite." >> "$GITHUB_STEP_SUMMARY"
-              exit 0
-            fi
-            FILES="$(git diff --name-only "$BEFORE" HEAD)"
-          fi
-
-          echo "changed files:"
-          echo "$FILES" | sed 's/^/  /'
-
-          RELEVANT=false
-          MATCHED=""
-          while IFS= read -r file; do
-            [ -z "$file" ] && continue
-            while IFS= read -r prefix; do
-              [ -z "$prefix" ] && continue
-              case "$file" in
-                "$prefix"*) RELEVANT=true; MATCHED="$MATCHED $file" ;;
-              esac
-            done <<< "$TESTABLE_PATHS"
-          done <<< "$FILES"
-
-          echo "relevant=$RELEVANT" >> "$GITHUB_OUTPUT"
-          if [ "$RELEVANT" = true ]; then
-            echo "**Running the suite.** Testable changes:" >> "$GITHUB_STEP_SUMMARY"
-            for f in $MATCHED; do echo "- \`$f\`" >> "$GITHUB_STEP_SUMMARY"; done
-          else
-            echo "**Suite skipped** - nothing changed under:" >> "$GITHUB_STEP_SUMMARY"
-            echo "$TESTABLE_PATHS" | sed 's/^/- `/; s/$/`/' >> "$GITHUB_STEP_SUMMARY"
-          fi
+          echo "unit tests:   ${{ steps.filter.outputs.unit }}"
+          echo "smoke tests:  ${{ steps.filter.outputs.smoke }}"
+          {
+            echo "| suite | runs |"
+            echo "| --- | --- |"
+            echo "| Static checks + unit tests | ${{ steps.filter.outputs.unit }} |"
+            echo "| Browser smoke tests | ${{ steps.filter.outputs.smoke }} |"
+          } >> "$GITHUB_STEP_SUMMARY"
 
   # Fast logic layer: static script-collision check + jsdom unit tests. Kept
   # separate from `smoke` so a slow browser run cannot mask or delay a fast,
@@ -83,7 +62,7 @@ jobs:
   tests:
     name: Static checks + unit tests
     needs: changes
-    if: needs.changes.outputs.relevant == 'true'
+    if: needs.changes.outputs.unit == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -101,7 +80,7 @@ jobs:
   smoke:
     name: Browser smoke tests
     needs: changes
-    if: needs.changes.outputs.relevant == 'true'
+    if: needs.changes.outputs.smoke == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
