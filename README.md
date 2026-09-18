@@ -46,20 +46,28 @@ which is where the side panel arrived.
 > new version, unzip it and press ↻ on the extension's card in
 > `chrome://extensions`.
 
-**2. Give it access to your GitHub.** Open
-[the gh-viewer App page](https://github.com/apps/gh-viewer-sidebar/installations/new),
-press *Install*, and choose which account or organisation it may read — and within
-that, all repositories or a hand-picked few. You can change or revoke this at
-any time in GitHub's *Settings → Applications*.
-
-> Installing on an organisation you don't own sends a request to an owner
-> instead. They approve it once, and it covers everyone in the org.
-
-**3. Sign in.** Open the panel — in Firefox, View → Sidebar → gh-viewer; in
+**2. Sign in.** Open the panel — in Firefox, View → Sidebar → gh-viewer; in
 Chrome, the toolbar button — and press **Connect**. The browser asks whether
 gh-viewer may access `github.com` — it needs that only to exchange the sign-in
 code, and the answer is remembered. GitHub then shows you a short code, you
 approve it in the tab that opens, and that's it — you won't be asked again.
+
+That is usually everything. gh-viewer reads through a GitHub App, and if that
+App is already installed on the organisations you work in, signing in is all
+you have to do.
+
+**3. Only if something is missing: add an organisation.** If a repository you
+expected isn't there, the App hasn't been installed on the organisation that
+owns it. **That is configured once for the whole organisation**, not per person,
+so it is quite likely someone else's job — and it is done from gh-viewer's
+settings rather than during install.
+
+Open **⚙ → Access** and press *Check access*. It lists every account and
+repository gh-viewer can read for you, and walks through adding one that's
+missing — including what happens when you don't administer the organisation
+(GitHub turns it into a request for an owner to approve, once, for everyone).
+GitHub documents the flow in
+[Installing a GitHub App from a third party](https://docs.github.com/en/apps/using-github-apps/installing-a-github-app-from-a-third-party#installing-a-github-app).
 
 ## Using it
 
