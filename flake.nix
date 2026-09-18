@@ -1,5 +1,5 @@
 {
-  description = "gh-viewer dev shell: nodejs, python3, firefox, geckodriver, web-ext";
+  description = "gh-viewer dev shell: nodejs, python3, firefox, chromium, drivers, web-ext";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
@@ -19,6 +19,8 @@
               pkgs.python3
               pkgs.firefox
               pkgs.web-ext
+              pkgs.chromium
+              pkgs.chromedriver
               pkgs.geckodriver
             ];
           };

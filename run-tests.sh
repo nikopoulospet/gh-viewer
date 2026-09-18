@@ -38,6 +38,17 @@ run_browser() {
   fi
 }
 
+# The Chrome build is generated, so build it before testing it - otherwise the
+# suite would happily validate a stale dist/ from some earlier run.
+run_chrome() {
+  python3 tools/build_chrome.py >/dev/null || return 1
+  if command -v chromium >/dev/null 2>&1 && command -v chromedriver >/dev/null 2>&1; then
+    python3 tests/smoke_chrome.py
+  else
+    $NIX shell nixpkgs#chromium nixpkgs#chromedriver -c python3 tests/smoke_chrome.py
+  fi
+}
+
 run_lint() {
   if command -v web-ext >/dev/null 2>&1; then
     web-ext lint --source-dir=extension --output=text
@@ -60,6 +71,9 @@ run_node 'cd tests && node --test "unit/*.test.mjs"'; track $?
 if [ "${1:-}" != "fast" ]; then
   step "smoke: real headless Firefox"
   run_browser; track $?
+
+  step "smoke: real headless Chrome"
+  run_chrome; track $?
 fi
 
 printf '\n'

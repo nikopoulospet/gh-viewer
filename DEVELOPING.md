@@ -121,6 +121,11 @@ Three layers, each catching what the one below cannot:
   it through geckodriver's HTTP API (no selenium dependency). Proves what jsdom
   cannot: the manifest is accepted, CSP allows the scripts, `browser.*` behaves,
   and the CSS actually paints.
+- **`tests/smoke_chrome.py`** — the same checks against the Chrome build in
+  headless Chromium, reusing the same W3C client and the same fixtures. It builds
+  `dist/chrome` first, so it can never validate a stale package. Chrome derives an
+  unpacked extension's id from its absolute path, which the test computes rather
+  than scraping `chrome://extensions`.
 
 Two things the browser layer needs that are easy to trip over: the extension's
 internal UUID is pinned via the `extensions.webextensions.uuids` pref so its
@@ -216,6 +221,42 @@ manually sending a new file.
 now requires — was introduced there. `gecko_android` is declared separately at
 142 for the same reason; Firefox for Android has no sidebar, so this is desktop
 software regardless.
+
+### The Chrome build
+
+One source tree serves both browsers. `extension/` is shared verbatim; `chrome/`
+holds the handful of files that differ, and the build overlays them:
+
+```bash
+python3 tools/build_chrome.py          # -> dist/chrome/
+python3 tools/build_chrome.py --zip    # -> dist/gh-viewer-chrome-<version>.zip
+```
+
+What actually differs:
+
+| | Firefox | Chrome |
+| --- | --- | --- |
+| Manifest | v2 | v3 |
+| Sidebar | `sidebar_action` | `side_panel` + `sidePanel` permission |
+| Toolbar button | `browser_action` + `sidebarAction.toggle()` | `action` + `sidePanel.setPanelBehavior` |
+| Hosts | in `permissions` | in `host_permissions` |
+| Icons | SVG | PNG — Chrome rejects SVG |
+
+Everything else — `lib/`, `sidebar/`, `options/` — runs unmodified. The APIs in
+use (`storage`, `tabs`, `windows`, `runtime`) exist in both and return promises
+in MV3, so `lib/compat.js` aliasing `browser` to `chrome` is all the shimming
+needed; no polyfill. Recent Chromium actually ships its own `browser` object, so
+the shim is a fallback for older versions rather than the usual path.
+
+Chrome has no toggle API and `sidePanel.open()` requires a user gesture, hence
+`setPanelBehavior({ openPanelOnActionClick: true })` — the panel opens on the
+toolbar icon instead. Note Chrome's side panel shares one slot with its built-in
+panels (reading list, bookmarks) and has no View menu entry, so the toolbar
+button is the only way in.
+
+To load it: `chrome://extensions` → Developer mode → **Load unpacked** →
+`dist/chrome`. Publishing on the Chrome Web Store needs a one-time $5 developer
+fee.
 
 ### Screenshots
 

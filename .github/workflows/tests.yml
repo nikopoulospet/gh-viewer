@@ -39,3 +39,13 @@ jobs:
       - name: headless Firefox smoke test
         timeout-minutes: 15
         run: nix develop -c python3 tests/smoke.py
+
+      # The same checks against the Chrome build, which is generated from the
+      # same source tree - so a change that works in Firefox but breaks Chrome
+      # fails here rather than after someone installs it.
+      - name: build the Chrome package
+        run: nix develop -c python3 tools/build_chrome.py
+
+      - name: headless Chrome smoke test
+        timeout-minutes: 15
+        run: nix develop -c python3 tests/smoke_chrome.py
