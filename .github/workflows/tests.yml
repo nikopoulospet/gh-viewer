@@ -5,37 +5,133 @@ on:
     branches: [main]
   pull_request:
 
+# A new push supersedes the run in progress for the same branch; there is no
+# value in finishing tests for a commit nobody will look at again.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  # Fast logic layer: static script-collision check + jsdom unit tests.
-  # Kept separate from `smoke` so a slow/flaky browser run can never mask a
-  # fast, deterministic logic failure (or delay reporting one).
+  changes:
+    name: Which changes landed?
+    runs-on: ubuntu-latest
+    outputs:
+      unit: ${{ steps.filter.outputs.unit }}
+      smoke: ${{ steps.filter.outputs.smoke }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # push events diff against the previous commit
+
+      # Each job's paths live next to that job's meaning, as YAML globs. To make
+      # something trigger a suite, add a line here - there is no regex, and no
+      # single list that every job has to share.
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            unit:
+              - 'extension/**'
+              - 'tests/**'
+              - 'tools/**'
+              - '.github/workflows/tests.yml'
+            smoke:
+              - 'extension/**'
+              - 'chrome/**'
+              - 'tests/**'
+              - 'tools/build_chrome.py'
+              - 'flake.nix'
+              - 'flake.lock'
+              - 'run-tests.sh'
+              - '.github/workflows/tests.yml'
+
+      - name: Report what will run
+        run: |
+          echo "unit tests:   ${{ steps.filter.outputs.unit }}"
+          echo "smoke tests:  ${{ steps.filter.outputs.smoke }}"
+          {
+            echo "| suite | runs |"
+            echo "| --- | --- |"
+            echo "| Static checks + unit tests | ${{ steps.filter.outputs.unit }} |"
+            echo "| Browser smoke tests | ${{ steps.filter.outputs.smoke }} |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # Fast logic layer: static script-collision check + jsdom unit tests. Kept
+  # separate from `smoke` so a slow browser run cannot mask or delay a fast,
+  # deterministic logic failure.
   tests:
     name: Static checks + unit tests
+    needs: changes
+    if: needs.changes.outputs.unit == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: DeterminateSystems/nix-installer-action@main
-      - uses: DeterminateSystems/magic-nix-cache-action@main
 
-      - name: npm ci (tests/)
+      - name: Install test dependencies
         run: nix develop -c bash -c 'cd tests && npm ci'
 
-      - name: static check + unit tests
+      - name: Static checks and unit tests
         run: nix develop -c ./run-tests.sh fast
 
-  # Slow layer: installs the extension into real headless Firefox via
-  # geckodriver. Already runs -headless, so no display server is needed, but
-  # browser startup + WebDriver round-trips make this the slow job.
+  # Slow layer: installs the extension into a real headless browser. Already
+  # headless, so no display server is needed, but browser startup and WebDriver
+  # round-trips make this the slow job.
   smoke:
-    name: Browser smoke test (headless Firefox)
+    name: Browser smoke tests
+    needs: changes
+    if: needs.changes.outputs.smoke == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: DeterminateSystems/nix-installer-action@main
-      - uses: DeterminateSystems/magic-nix-cache-action@main
 
-      - name: headless Firefox smoke test
+      - name: Headless Firefox smoke test
         timeout-minutes: 15
         run: nix develop -c python3 tests/smoke.py
+
+  # The single REQUIRED check. Everything above is optional and may be skipped;
+  # this always runs and reports, so branch protection has one status that is
+  # guaranteed to arrive. A skipped dependency is a pass - it means the gate
+  # decided there was nothing to test - while a failed one fails the gate.
+  gate:
+    name: CI
+    needs: [changes, tests, smoke]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check the results of every optional job
+        run: |
+          CHANGES="${{ needs.changes.result }}"
+          TESTS="${{ needs.tests.result }}"
+          SMOKE="${{ needs.smoke.result }}"
+          echo "changes: $CHANGES"
+          echo "tests:   $TESTS"
+          echo "smoke:   $SMOKE"
+
+          # The filter itself failing is not a pass: it would silently skip
+          # everything downstream.
+          if [ "$CHANGES" != "success" ]; then
+            echo "::error::the change filter did not succeed ($CHANGES)"
+            exit 1
+          fi
+
+          FAILED=0
+          for result in "$TESTS" "$SMOKE"; do
+            case "$result" in
+              success|skipped) ;;
+              *) FAILED=1 ;;
+            esac
+          done
+
+          if [ "$FAILED" = 1 ]; then
+            echo "::error::a test job did not pass (tests=$TESTS smoke=$SMOKE)"
+            echo "**CI failed** - tests: \`$TESTS\`, smoke: \`$SMOKE\`" >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+
+          if [ "$TESTS" = "skipped" ]; then
+            echo "**CI passed** - no testable changes, so the suite was skipped." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "**CI passed** - the full suite ran." >> "$GITHUB_STEP_SUMMARY"
+          fi
