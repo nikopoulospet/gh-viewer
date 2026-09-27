@@ -27,7 +27,7 @@ jobs:
       # Each job's paths live next to that job's meaning, as YAML globs. To make
       # something trigger a suite, add a line here - there is no regex, and no
       # single list that every job has to share.
-      - uses: dorny/paths-filter@v3
+      - uses: dorny/paths-filter@v4
         id: filter
         with:
           filters: |
