@@ -90,7 +90,7 @@ jobs:
       # permanently, so a signed file must never be lost to a later failure -
       # recovering from that costs a version bump.
       - name: Keep the signed artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: gh-viewer-${{ needs.check.outputs.version }}-xpi
           path: dist/*.xpi
