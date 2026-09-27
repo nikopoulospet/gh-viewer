@@ -1,0 +1,6 @@
+{
+  // The scripts on options/options.html. Shares lib/ with the panel, which is
+  // the point: a change there is checked against both callers.
+  "extends": "./tsconfig.base.json",
+  "include": ["types/**/*.d.ts", "extension/lib/*.js", "extension/options/options.js"]
+}

@@ -2,5 +2,12 @@
   "name": "gh-viewer-tests",
   "private": true,
   "type": "module",
-  "dependencies": { "jsdom": "^25.0.1" }
+  "dependencies": {
+    "@types/chrome": "^0.3.0",
+    "jsdom": "^25.0.1"
+  },
+  "devDependencies": {
+    "@types/firefox-webext-browser": "^120.0.4",
+    "typescript": "^5.7.2"
+  }
 }

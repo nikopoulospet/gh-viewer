@@ -150,12 +150,16 @@ so fixtures built from real private-repo data would publish it. Node, both
 browsers and both drivers are fetched by nix at user level; nothing is installed
 globally.
 
-Four layers, each catching what the one below cannot:
+Five layers, each catching what the one below cannot:
 
 - **`tools/check_scripts.py`** — the extension's pages load classic scripts that
   share one global scope, so a top-level `const` of the same name in two files
   is a SyntaxError that silently kills the second file. This shipped once. The
   checker tracks real brace depth, so IIFE-wrapped code is correctly ignored.
+- **`tsc --checkJs`** — the types live in JSDoc comments, so this reads the
+  shipped source directly. Catches what tests are poor at: a misspelled API
+  call, a property that does not exist, an argument in the wrong place. Nothing
+  is emitted and nothing is transpiled.
 - **`tests/unit/`** — jsdom, with `browser.*` mocked and fixtures fed through a
   stubbed `fetch`. Evaluates the real page scripts in one shared window, in
   order, exactly as the browser does. Covers the boot states, rendering,
@@ -181,6 +185,47 @@ mode loads extensions, chromedriver must be pointed at the dev shell's chromium
 or it picks up whatever system Chrome it finds (usually the wrong version), and
 the extension's id is read back off its service worker target rather than
 guessed — which is also what proves the MV3 background registered at all.
+
+## Type checking without a build step
+
+Types are JSDoc comments checked by `tsc`, not TypeScript source. That is a
+deliberate trade: the same checker and the same inference, but **the source
+stays exactly what ships**. No build step means AMO review stays the easy case,
+`tools/build_chrome.py` can keep copying the tree wholesale, and the smoke tests
+can keep installing `extension/` directly into a browser.
+
+```js
+/** @param {GVQuery} query @returns {QueryCard} */
+function card(query) { … }
+```
+
+Two pieces of setup are worth knowing about.
+
+**One program per page.** The pages load classic scripts sharing one global
+scope, so TypeScript reads them as scripts rather than modules — which is what
+makes a duplicate top-level declaration an error, the same way it is in the
+browser. But pointing it at the whole repo would merge pages that never meet:
+`panel.js` and `options.js` both declare a top-level `queries`, which is fine
+because no page loads both. Hence `tsconfig.panel.json`,
+`tsconfig.options.json` and `tsconfig.workers.json`, each listing one page's
+scripts, all extending `tsconfig.base.json`.
+
+So this does **not** replace `tools/check_scripts.py`. They overlap on same-page
+collisions; the Python checker is the one that knows about pages from the HTML
+rather than from a hand-maintained list, and it also warns about function
+shadowing.
+
+**`types/gv.d.ts` declares the `GV` namespace.** Nothing can infer that object's
+shape from scattered `GV.x = …` assignments, so it is written down once; it is
+the contract between the libraries. Every member is optional, which is what
+lets each file open with `globalThis.GV = globalThis.GV || {}` without a cast
+while still catching a read of a member no library defines. It earned its place
+immediately: `diagnostics.js` was calling `GV.collect` and `GV.total`, neither of
+which has ever existed.
+
+`strict` is off on purpose. The point is catching real mistakes across a
+codebase written without types; requiring an annotation on every parameter would
+make a new file fail for being new rather than for being wrong.
 
 ## The Chrome port
 
@@ -391,6 +436,8 @@ extension/
   options/          query editor
 chrome/
   background.js     Chrome's service worker, in place of extension/background.js
+types/
+  gv.d.ts           the shape of the shared GV namespace
 tools/
   register_app.py   App manifest registration flow
   check_queries.py  validates every shipped GraphQL document

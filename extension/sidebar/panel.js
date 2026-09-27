@@ -2,7 +2,7 @@
 
 const view = document.getElementById("view");
 const statusBar = document.getElementById("status");
-const select = document.getElementById("query-select");
+const select = /** @type {HTMLSelectElement} */ (document.getElementById("query-select"));
 const backButton = document.getElementById("back");
 
 let queries = [];
@@ -45,7 +45,8 @@ function show(node, { back = false } = {}) {
 // modifier (middle-click, ctrl/cmd/shift-click) is an explicit request for a
 // new background tab, so it always gets one, even if a match exists.
 document.addEventListener("click", (event) => {
-  const anchor = event.target.closest?.("a[href]");
+  const anchor = /** @type {HTMLAnchorElement | null} */ (
+    /** @type {Element} */ (event.target).closest?.("a[href]"));
   if (!anchor || !/^https?:/i.test(anchor.href)) return;
   event.preventDefault();
   event.stopPropagation();
@@ -86,7 +87,9 @@ async function openLink(url, background) {
 }
 
 document.addEventListener("auxclick", (event) => {
-  if (event.button === 1) event.target.closest?.("a[href]") && event.preventDefault();
+  if (event.button === 1) {
+    /** @type {Element} */ (event.target).closest?.("a[href]") && event.preventDefault();
+  }
 });
 
 // --- first-run: the App's client id -------------------------------------
@@ -264,9 +267,10 @@ async function runSelected() {
 // --- drill-down ----------------------------------------------------------
 
 view.addEventListener("click", async (event) => {
-  const row = event.target.closest?.(".row");
+  const target = /** @type {Element} */ (event.target);
+  const row = /** @type {HTMLElement | null} */ (target.closest?.(".row"));
   if (!row || !row.dataset.id) return;
-  if (event.target.closest("a")) return; // the ↗ link handles itself
+  if (target.closest("a")) return; // the ↗ link handles itself
   openDetail(row.dataset.id);
 });
 

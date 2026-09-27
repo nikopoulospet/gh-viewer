@@ -34,13 +34,10 @@ globalThis.GV = globalThis.GV || {};
           ok: !errors?.length,
           ms: Date.now() - started,
           // Counts only - titles and URLs of private work stay out of a report
-          // the user is about to paste somewhere public.
-          // GV.collect/GV.total understand multi-path queries; fall back to a
-          // single path so this works regardless of which is present.
-          rows: (GV.collect ? GV.collect(data, query.list)
-                            : GV.pluck(data, query.list) || []).length,
-          total: GV.total ? GV.total(data, query.count)
-                          : GV.pluck(data, query.count) ?? null,
+          // the user is about to paste somewhere public. Read the same way the
+          // panel reads them, so a probe cannot disagree with the sidebar.
+          rows: (GV.pluck(data, query.list) || []).length,
+          total: GV.pluck(data, query.count) ?? null,
           errors: (errors || []).map((e) => ({
             type: e.type || null,
             path: Array.isArray(e.path) ? e.path.join(".") : null,

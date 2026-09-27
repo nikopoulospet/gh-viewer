@@ -2,8 +2,8 @@
 
 const list = document.getElementById("queries");
 const statusLine = document.getElementById("status");
-const clientInput = document.getElementById("client-id");
-const fileInput = document.getElementById("file");
+const clientInput = /** @type {HTMLInputElement} */ (document.getElementById("client-id"));
+const fileInput = /** @type {HTMLInputElement} */ (document.getElementById("file"));
 
 let queries = [];
 
@@ -15,16 +15,29 @@ function say(text, tone) {
 function field(labelText, value, className, rows) {
   const wrap = document.createElement("label");
   wrap.textContent = labelText;
-  const area = document.createElement(rows ? "textarea" : "input");
-  if (!rows) area.type = "text";
+  const area = /** @type {HTMLInputElement | HTMLTextAreaElement} */ (
+    document.createElement(rows ? "textarea" : "input"));
+  // Only reached for the input branch, where `type` is writable - the ternary
+  // above is what the checker cannot follow.
+  if (!rows) /** @type {HTMLInputElement} */ (area).type = "text";
   area.className = className;
   area.value = value ?? "";
   wrap.append(area);
   return { wrap, area };
 }
 
+/**
+ * One editable query. The card carries its own reader: `collect()` returns the
+ * query as currently typed, so saving is just a map over the cards rather than
+ * a second copy of the field layout.
+ *
+ * @typedef {HTMLDivElement & { collect: () => GVQuery }} QueryCard
+ *
+ * @param {GVQuery} query
+ * @returns {QueryCard}
+ */
 function card(query) {
-  const root = document.createElement("div");
+  const root = /** @type {QueryCard} */ (document.createElement("div"));
   root.className = "card";
 
   const head = document.createElement("div");
@@ -108,7 +121,8 @@ document.getElementById("add").addEventListener("click", () => {
 
 document.getElementById("save").addEventListener("click", async () => {
   try {
-    const collected = Array.from(list.children).map((c) => c.collect());
+    const collected = Array.from(list.children)
+      .map((c) => /** @type {QueryCard} */ (c).collect());
     await GV.store.saveQueries(collected);
     queries = collected;
     say(`saved ${collected.length} queries`, "ok");
@@ -173,7 +187,7 @@ async function showAccount() {
 
 // --- tabs ----------------------------------------------------------------
 
-const tabs = [...document.querySelectorAll(".tab")];
+const tabs = /** @type {HTMLElement[]} */ ([...document.querySelectorAll(".tab")]);
 const panels = new Map(
   tabs.map((tab) => [tab.dataset.tab, document.getElementById(`tab-${tab.dataset.tab}`)])
 );
@@ -292,7 +306,7 @@ function sayDiagnostics(text, tone) {
 }
 
 document.getElementById("generate").addEventListener("click", async () => {
-  const probe = document.getElementById("probe").checked;
+  const probe = /** @type {HTMLInputElement} */ (document.getElementById("probe")).checked;
   sayDiagnostics(probe ? "collecting state and querying GitHub…" : "collecting state…");
   try {
     const report = await GV.diagnostics.collect({ probe });
@@ -324,7 +338,7 @@ document.getElementById("copy").addEventListener("click", async () => {
   const requested = location.hash.replace("#", "");
   selectTab(panels.has(requested) ? requested : "queries");
 
-  document.getElementById("install-link").href = GV.INSTALL_URL;
+  /** @type {HTMLAnchorElement} */ (document.getElementById("install-link")).href = GV.INSTALL_URL;
   clientInput.value = await GV.store.getClientId();
   queries = await GV.store.getQueries();
   draw();

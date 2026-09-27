@@ -1,0 +1,5 @@
+{
+  // The scripts on sidebar/panel.html, in load order.
+  "extends": "./tsconfig.base.json",
+  "include": ["types/**/*.d.ts", "extension/lib/*.js", "extension/sidebar/panel.js"]
+}
