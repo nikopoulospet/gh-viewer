@@ -1,0 +1,16 @@
+version: 2
+updates:
+  # Only npm manifest in the repo: dev/test tooling (typescript, jsdom, @types/*).
+  # Nothing ships to the extension itself - see extension/ and chrome/, which
+  # have no package.json.
+  - package-ecosystem: "npm"
+    directory: "/tests"
+    schedule:
+      interval: "weekly"
+
+  # Actions pulled into release.yml and tests.yml (checkout, nix-installer,
+  # paths-filter, ...). Covers the supply-chain surface of CI itself.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
