@@ -1,0 +1,6 @@
+{
+  // The two background scripts. They share no scope with the pages or with each
+  // other - each is the whole program for the browser that loads it.
+  "extends": "./tsconfig.base.json",
+  "include": ["types/**/*.d.ts", "extension/background.js", "chrome/background.js"]
+}

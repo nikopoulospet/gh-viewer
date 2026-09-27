@@ -3,6 +3,20 @@
 // nothing is ever sent anywhere except to api.github.com.
 globalThis.GV = globalThis.GV || {};
 
+/**
+ * A saved view: a GraphQL document, its variables, and the paths saying where
+ * in the response the rows and the count live.
+ *
+ * @typedef {object} GVQuery
+ * @property {string} id
+ * @property {string} name
+ * @property {string} document GraphQL document text
+ * @property {Record<string, any>} variables
+ * @property {string} list comma-separated paths to the rows, e.g. "search.nodes"
+ * @property {string} [count] path to a total, for the status line only
+ * @property {string} [detail] path used when drilling into a row
+ */
+
 GV.AuthError = class AuthError extends Error {};
 
 // The App's public client id. Registering the App is a one-time developer step,

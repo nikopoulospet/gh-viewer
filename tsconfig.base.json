@@ -1,0 +1,35 @@
+{
+  // Type checking only - nothing is emitted, nothing is transpiled, so the
+  // source stays exactly what ships. Types live in JSDoc comments, which means
+  // no build step: AMO review, tools/build_chrome.py copying the tree
+  // wholesale, and the smoke tests installing extension/ directly all keep
+  // working unchanged.
+  //
+  // One program per page, not one for the repo - see the tsconfig.*.json that
+  // extend this. The extension's pages load classic scripts sharing one global
+  // scope, so TypeScript reads them as scripts rather than modules; pointing it
+  // at everything at once would merge pages that never meet in a browser and
+  // report their top-level names as collisions.
+  "compilerOptions": {
+    "noEmit": true,
+    "allowJs": true,
+    "checkJs": true,
+    "target": "ES2022",
+    "module": "preserve",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    // Dependencies live in tests/, the only place this repo installs node
+    // packages. Both globals are declared everywhere because lib/compat.js
+    // legitimately touches each: it aliases one to the other.
+    "typeRoots": ["./tests/node_modules/@types"],
+    "types": ["firefox-webext-browser", "chrome"],
+    // Deliberately not `strict`. The point is catching real mistakes - typos,
+    // properties that do not exist, arity errors - across a codebase written
+    // without types. Demanding an annotation on every parameter would turn a
+    // useful check into a wall of noise, and a new file would fail the build
+    // for being new rather than for being wrong.
+    "strict": false,
+    "noImplicitAny": false,
+    "skipLibCheck": true
+  }
+}
