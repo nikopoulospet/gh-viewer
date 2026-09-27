@@ -7,7 +7,7 @@
     "jsdom": "^25.0.1"
   },
   "devDependencies": {
-    "@types/firefox-webext-browser": "^120.0.4",
+    "@types/firefox-webext-browser": "^143.0.0",
     "typescript": "^5.7.2"
   }
 }
