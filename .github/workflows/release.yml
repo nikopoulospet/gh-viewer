@@ -20,7 +20,7 @@ jobs:
       version: ${{ steps.check.outputs.version }}
       needed: ${{ steps.check.outputs.needed }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0 # tags are how we know what has already shipped
 
@@ -42,7 +42,7 @@ jobs:
     if: needs.check.outputs.needed == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # Fail before spending minutes on tests if the credentials are absent.
       - name: Check AMO credentials are configured
